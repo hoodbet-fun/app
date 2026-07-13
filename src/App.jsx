@@ -19,6 +19,7 @@ import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
+import { VAULT_YIELD_BUFFER_ERROR } from './deposit.js'
 
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
 const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
@@ -218,6 +219,22 @@ export default function App() {
     if (!total || total === 0n) return null
     return (Number(twab) / Number(total)) * 100
   }, [twabData])
+
+  const { data: yieldBuffer } = useReadContract({
+    address: vaultAddress,
+    abi: erc4626Abi,
+    functionName: 'yieldBuffer',
+  })
+
+  const { data: maxDeposit } = useReadContract({
+    address: vaultAddress,
+    abi: erc4626Abi,
+    functionName: 'maxDeposit',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address) },
+  })
+
+  const vaultDepositBlocked = yieldBuffer === 0n || maxDeposit === 0n
 
   const needsApproval = useMemo(() => {
     if (!amount || allowance === undefined) return false
@@ -533,6 +550,8 @@ export default function App() {
                 wrongChain={wrongChain}
                 chainMessage={chainMessage}
                 switchingChain={switchingChain}
+                vaultDepositBlocked={vaultDepositBlocked}
+                vaultBlockedMessage={VAULT_YIELD_BUFFER_ERROR}
                 onSwitchChain={handleSwitchChain}
                 lowGas={lowGas}
                 onConnect={() => connect({ connector: connectors[0] })}

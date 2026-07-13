@@ -74,6 +74,27 @@ export const erc4626Abi = [
     inputs: [{ name: 'owner', type: 'address' }],
     outputs: [{ type: 'uint256' }],
   },
+  {
+    name: 'maxDeposit',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'receiver', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    name: 'yieldBuffer',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    name: 'previewDeposit',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'assets', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
 ]
 
 export const prizePoolAbi = [

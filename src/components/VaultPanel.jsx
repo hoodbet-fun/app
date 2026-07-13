@@ -22,6 +22,8 @@ export function VaultPanel({
   chainMessage,
   switchingChain,
   onSwitchChain,
+  vaultDepositBlocked,
+  vaultBlockedMessage,
   lowGas,
   onConnect,
   walletBalance,
@@ -66,7 +68,7 @@ export function VaultPanel({
   else if (txStep === 'withdrawing' && isConfirming) withdrawLabel = 'Confirming…'
   else if (txStep === 'success' && !isDeposit) withdrawLabel = 'Done ✓'
 
-  const canDeposit = depositAmount && !depositExceeds && !isBusy && txStep !== 'success' && !wrongChain && !lowGas
+  const canDeposit = depositAmount && !depositExceeds && !isBusy && txStep !== 'success' && !wrongChain && !lowGas && !vaultDepositBlocked
   const canWithdraw = maxWithdraw && maxWithdraw > 0n && !withdrawExceeds && !isBusy && !wrongChain && !lowGas
 
   const statusLine = isWalletPending
@@ -107,10 +109,15 @@ export function VaultPanel({
       </div>
 
       <div className="vault-panel-body">
-        {(wrongChain || lowGas) && (
+        {(wrongChain || lowGas || vaultDepositBlocked) && (
           <div className="vault-alerts">
             {wrongChain && <p className="warn-banner-compact">{chainMessage}</p>}
-            {lowGas && !wrongChain && <p className="warn-inline">Need ETH for gas on Robinhood Chain</p>}
+            {vaultDepositBlocked && !wrongChain && (
+              <p className="warn-banner-compact vault-blocked">{vaultBlockedMessage}</p>
+            )}
+            {lowGas && !wrongChain && !vaultDepositBlocked && (
+              <p className="warn-inline">Need ETH for gas on Robinhood Chain</p>
+            )}
           </div>
         )}
 

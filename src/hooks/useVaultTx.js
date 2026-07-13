@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { maxUint256, parseUnits } from 'viem'
-import { readContract } from 'wagmi/actions'
+import { readContract, simulateContract } from 'wagmi/actions'
 import { robinhoodChain } from '../config.js'
 import { erc20Abi, erc4626Abi } from '../abis.js'
+import { parseDepositError, VAULT_YIELD_BUFFER_ERROR } from '../deposit.js'
 
 function txMessage(err) {
-  const msg = err?.shortMessage || err?.message || 'Transaction failed'
-  return /rejected|denied|cancel/i.test(msg) ? 'Transaction cancelled in wallet.' : msg
+  return parseDepositError(err)
 }
 
 export function useVaultTx({
@@ -139,6 +139,43 @@ export function useVaultTx({
       depositAssetsRef.current = assets
 
       try {
+        const [maxDeposit, yieldBuffer] = await Promise.all([
+          readContract(wagmiConfig, {
+            address: vaultAddress,
+            abi: erc4626Abi,
+            functionName: 'maxDeposit',
+            args: [address],
+          }),
+          readContract(wagmiConfig, {
+            address: vaultAddress,
+            abi: erc4626Abi,
+            functionName: 'yieldBuffer',
+          }),
+        ])
+
+        if (yieldBuffer === 0n) {
+          setTxError(VAULT_YIELD_BUFFER_ERROR)
+          return
+        }
+
+        if (maxDeposit === 0n || assets > maxDeposit) {
+          setTxError(
+            maxDeposit === 0n
+              ? VAULT_YIELD_BUFFER_ERROR
+              : `Amount exceeds vault max deposit.`,
+          )
+          return
+        }
+
+        await simulateContract(wagmiConfig, {
+          address: vaultAddress,
+          abi: erc4626Abi,
+          functionName: 'deposit',
+          args: [assets, address],
+          account: address,
+          chainId: robinhoodChain.id,
+        })
+
         const freshAllowance = await readContract(wagmiConfig, {
           address: usdgAddress,
           abi: erc20Abi,

@@ -490,6 +490,11 @@ body {
   font-size: 0.78rem;
   line-height: 1.4;
 }
+.warn-banner-compact.vault-blocked {
+  color: #ff9a9a;
+  border-color: rgba(255, 100, 100, 0.35);
+  background: rgba(255, 80, 80, 0.1);
+}
 .vault-panel-dimmed { opacity: 0.45; pointer-events: none; }
 .vault-status {
   margin: 0.35rem 0 0;
