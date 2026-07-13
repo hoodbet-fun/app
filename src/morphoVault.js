@@ -58,8 +58,18 @@ export function formatApyPercent(rate) {
   return `${(rate * 100).toFixed(2)}%`
 }
 
-export function morphoVaultAppUrl(vaultAddress, chainId = CHAIN_ID) {
-  return `https://app.morpho.org/vault?vault=${vaultAddress}&chainId=${chainId}`
+const CHAIN_SLUGS = { 4663: 'robinhood-chain' }
+
+function vaultSlug(name) {
+  if (!name) return 'vault'
+  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return slug || 'vault'
+}
+
+export function morphoVaultAppUrl(vaultAddress, chainId = CHAIN_ID, vaultName) {
+  const chain = CHAIN_SLUGS[chainId] ?? `chain-${chainId}`
+  const slug = vaultSlug(vaultName)
+  return `https://app.morpho.org/${chain}/vault/${vaultAddress}/${slug}#overview`
 }
 
 export async function fetchMorphoVaultSnapshot(vaultAddress, chainId = CHAIN_ID) {
