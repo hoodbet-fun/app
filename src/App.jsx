@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAccount, useConnect, useDisconnect, useReadContract, useBalance } from 'wagmi'
 import { formatUnits } from 'viem'
-import { addresses } from './config.js'
+import { addresses, links } from './config.js'
 
 const erc4626Abi = [
   { name: 'totalAssets', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
@@ -74,6 +74,8 @@ export default function App() {
             <span>hood<em>bet</em> HoodPot</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <a className="nav-link" href={links.docs} target="_blank" rel="noreferrer">Docs</a>
+            <a className="nav-link" href={links.landing} target="_blank" rel="noreferrer">hoodbet.fun</a>
             {isConnected && address && <TierBadge address={address} />}
             {isConnected ? (
               <button className="btn btn-outline" type="button" onClick={() => disconnect()}>
@@ -171,6 +173,12 @@ export default function App() {
             {' '}Holding unlocks referral boost and early access.
           </p>
         </div>
+
+        <footer className="footer">
+          <a href={links.docs} target="_blank" rel="noreferrer">Docs</a>
+          <a href={links.github} target="_blank" rel="noreferrer">GitHub</a>
+          <a href={links.landing} target="_blank" rel="noreferrer">hoodbet.fun</a>
+        </footer>
       </div>
     </div>
   )

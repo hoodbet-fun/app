@@ -47,3 +47,11 @@ body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--b
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
 .address { font-family: monospace; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+.nav-link { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+.nav-link:hover { color: var(--primary); }
+.footer {
+  display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center;
+  margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+}
+.footer a { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+.footer a:hover { color: var(--primary); }

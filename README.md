@@ -15,3 +15,12 @@ npm run dev
 npm run build
 # deploy dist/ to app.hoodbet.fun
 ```
+
+## Environment
+
+| Variable | Production |
+|----------|------------|
+| `VITE_GITBOOK_URL` | `https://hoodbet.gitbook.io/hoodbet-docs` |
+| `VITE_LANDING_URL` | `https://hoodbet.fun` |
+| `VITE_GITHUB_URL` | `https://github.com/hoodbet-fun` |
+
