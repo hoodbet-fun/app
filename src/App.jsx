@@ -13,10 +13,11 @@ import { formatUnits, parseEther, parseUnits, zeroAddress } from 'viem'
 import { readContract } from 'wagmi/actions'
 import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
-import { explorerAddress, formatCountdown, formatUsd, shortenAddress } from './format.js'
+import { explorerAddress, explorerTx, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
 import { VaultPanel } from './components/VaultPanel.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
+import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
@@ -178,6 +179,11 @@ export default function App() {
     query: { enabled: Boolean(address && addresses.hoodPoints) },
   })
 
+  const { vault: subgraphVault } = useProtocolStatsSubgraph()
+  const { draws: subgraphDraws, loading: drawsLoading } = useDrawHistory(8)
+  const { winners: recentWinners, loading: winnersLoading } = useRecentWinners(12)
+  const { account: subgraphAccount } = useUserVaultAccount(address)
+
   useEffect(() => {
     const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000)
     return () => clearInterval(id)
@@ -207,8 +213,17 @@ export default function App() {
 
   const countdownSec = drawClosesAt ? Number(drawClosesAt) - now : null
   const jackpot = prizeBalance ? formatUnits(prizeBalance, 6) : null
-  const tvl = vaultAssets ? formatUnits(vaultAssets, 6) : null
-  const position = vaultAssetsUser ? formatUnits(vaultAssetsUser, 6) : '0'
+  const tvlOnChain = vaultAssets ? formatUnits(vaultAssets, 6) : null
+  const tvlFromSubgraph = subgraphVault?.balance != null
+    ? formatUnits(BigInt(subgraphVault.balance), 6)
+    : null
+  const tvl = tvlOnChain ?? tvlFromSubgraph
+  const positionOnChain = vaultAssetsUser ? formatUnits(vaultAssetsUser, 6) : null
+  const positionFromSubgraph = subgraphAccount?.balance != null
+    ? formatUnits(BigInt(subgraphAccount.balance), 6)
+    : null
+  const position = positionOnChain ?? positionFromSubgraph ?? '0'
+  const lastSubgraphDraw = subgraphDraws[0] ?? null
   const walletUsd = usdgBalance ? formatUnits(usdgBalance.value, usdgBalance.decimals) : '0'
 
   // Morpho-backed PrizeVault often reports maxWithdraw=0; use convertToAssets fallback.
@@ -505,8 +520,8 @@ export default function App() {
                 <div className="panel-head">
                   <h2>Prizes & claims</h2>
                   <p>
-                    Draw #{lastAwardedDrawId?.toString() || '0'} last awarded.
-                    {lastAwardedDrawId === 0n && ' First draw pending.'}
+                    Draw #{lastAwardedDrawId?.toString() || lastSubgraphDraw?.drawId?.toString() || '0'} last awarded.
+                    {lastAwardedDrawId === 0n && !lastSubgraphDraw && ' First draw pending.'}
                   </p>
                 </div>
 
@@ -542,6 +557,74 @@ export default function App() {
                     <button type="button" className="btn btn-ghost" onClick={scanClaimablePrizes}>Refresh</button>
                   </div>
                 )}
+
+                <div className="history-section">
+                  <h3>Recent winners</h3>
+                  {winnersLoading ? (
+                    <p className="muted">Loading from indexer…</p>
+                  ) : recentWinners.length > 0 ? (
+                    <div className="draw-history">
+                      {recentWinners.map((w) => (
+                        <div key={w.id} className="draw-history-item">
+                          <span className="prize-tier">{TIER_LABELS[w.tier] || `Tier ${w.tier}`}</span>
+                          <div className="draw-history-main">
+                            <strong>${formatUsd(formatUnits(BigInt(w.payout), 6))}</strong>
+                            <span className="muted">
+                              Draw #{w.draw?.drawId ?? '—'} · {formatTimestamp(w.timestamp)}
+                            </span>
+                          </div>
+                          <a
+                            className="draw-history-link"
+                            href={explorerAddress(w.winner)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {shortenAddress(w.winner)}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">No winners indexed yet.</p>
+                  )}
+                </div>
+
+                <div className="history-section">
+                  <h3>Draw history</h3>
+                  {drawsLoading ? (
+                    <p className="muted">Loading from indexer…</p>
+                  ) : subgraphDraws.length > 0 ? (
+                    <div className="draw-history">
+                      {subgraphDraws.map((d) => (
+                        <div key={d.drawId} className="draw-history-item draw-history-draw">
+                          <span className="prize-tier">#{d.drawId}</span>
+                          <div className="draw-history-main">
+                            <strong>
+                              {d.prizeClaims?.length
+                                ? `${d.prizeClaims.length} winner${d.prizeClaims.length > 1 ? 's' : ''}`
+                                : 'Awarded'}
+                            </strong>
+                            <span className="muted">
+                              Reserve ${formatUsd(formatUnits(BigInt(d.reserve || 0), 6))} · {formatTimestamp(d.timestamp)}
+                            </span>
+                          </div>
+                          {d.txHash && (
+                            <a
+                              className="draw-history-link"
+                              href={explorerTx(d.txHash)}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Tx
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">No draws indexed yet.</p>
+                  )}
+                </div>
               </div>
             )}
           </aside>

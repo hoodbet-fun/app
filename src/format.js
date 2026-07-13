@@ -32,3 +32,17 @@ export function formatCountdown(seconds) {
 export function explorerAddress(addr) {
   return `https://robinhoodchain.blockscout.com/address/${addr}`
 }
+
+export function explorerTx(hash) {
+  return `https://robinhoodchain.blockscout.com/tx/${hash}`
+}
+
+export function formatTimestamp(unixSec) {
+  const n = Number(unixSec)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  return new Date(n * 1000).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
