@@ -10,7 +10,6 @@ import {
   useSwitchChain,
 } from 'wagmi'
 import { formatUnits, parseEther, parseUnits, zeroAddress } from 'viem'
-import { readContract } from 'wagmi/actions'
 import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, explorerTx, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
@@ -20,6 +19,7 @@ import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
 import { useMorphoVaultSnapshot } from './hooks/useMorphoVaultSnapshot.js'
+import { useClaimablePrizes } from './hooks/useClaimablePrizes.js'
 import { formatApyPercent } from './morphoVault.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
@@ -47,8 +47,6 @@ export default function App() {
   const [amount, setAmount] = useState('')
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
-  const [claimable, setClaimable] = useState([])
-  const [scanningPrizes, setScanningPrizes] = useState(false)
   const [claiming, setClaiming] = useState(false)
   const [switchingChain, setSwitchingChain] = useState(false)
   const [walletChainId, setWalletChainId] = useState(null)
@@ -78,6 +76,12 @@ export default function App() {
     address: addresses.prizePool,
     abi: prizePoolAbi,
     functionName: 'getLastAwardedDrawId',
+  })
+
+  const { data: numberOfTiers } = useReadContract({
+    address: addresses.prizePool,
+    abi: prizePoolAbi,
+    functionName: 'numberOfTiers',
   })
 
   const { data: drawClosesAt } = useReadContract({
@@ -184,6 +188,21 @@ export default function App() {
 
   const { vault: subgraphVault } = useProtocolStatsSubgraph()
   const { snapshot: vaultSnapshot, loading: vaultApyLoading } = useMorphoVaultSnapshot(addresses.morphoVault)
+  const {
+    prizes: claimablePrizes,
+    total: claimableTotal,
+    loading: scanningPrizes,
+    refresh: refreshClaimablePrizes,
+  } = useClaimablePrizes({
+    wagmiConfig,
+    prizePool: addresses.prizePool,
+    vaultAddress,
+    userAddress: address,
+    lastAwardedDrawId,
+    numberOfTiers,
+    enabled: isConnected,
+  })
+  const claimableTotalUsd = formatUnits(claimableTotal, 6)
   const { draws: subgraphDraws, loading: drawsLoading } = useDrawHistory(8)
   const { winners: recentWinners, loading: winnersLoading } = useRecentWinners(12)
   const { account: subgraphAccount } = useUserVaultAccount(address)
@@ -230,12 +249,11 @@ export default function App() {
   const lastSubgraphDraw = subgraphDraws[0] ?? null
   const walletUsd = usdgBalance ? formatUnits(usdgBalance.value, usdgBalance.decimals) : '0'
 
-  // Morpho-backed PrizeVault often reports maxWithdraw=0; use convertToAssets fallback.
-  const withdrawableMax = useMemo(() => {
-    if (maxWithdraw && maxWithdraw > 0n) return maxWithdraw
-    if (vaultAssetsUser && vaultAssetsUser > 0n) return vaultAssetsUser
-    return 0n
-  }, [maxWithdraw, vaultAssetsUser])
+  // Use on-chain maxWithdraw only — convertToAssets overstates instant liquidity in Morpho.
+  const withdrawableMax = maxWithdraw ?? 0n
+  const withdrawLiquidityLimited = Boolean(
+    vaultAssetsUser && vaultAssetsUser > 0n && withdrawableMax < vaultAssetsUser,
+  )
 
   const oddsPercent = useMemo(() => {
     if (!twabData) return null
@@ -350,45 +368,12 @@ export default function App() {
     if (txStep === 'success' && vaultMode === 'withdraw') setWithdrawAmount('')
   }, [txStep, vaultMode])
 
-  async function scanClaimablePrizes() {
-    if (!address || !lastAwardedDrawId || lastAwardedDrawId === 0) {
-      setClaimable([])
-      return
-    }
-    setScanningPrizes(true)
-    const found = []
-    try {
-      for (let tier = 0; tier < 4; tier++) {
-        for (let prizeIndex = 0; prizeIndex < 8; prizeIndex++) {
-          try {
-            const won = await readContract(wagmiConfig, {
-              address: addresses.prizePool,
-              abi: prizePoolAbi,
-              functionName: 'isWinner',
-              args: [vaultAddress, address, tier, prizeIndex],
-            })
-            if (won) found.push({ tier, prizeIndex })
-          } catch {
-            break
-          }
-        }
-      }
-      setClaimable(found)
-    } finally {
-      setScanningPrizes(false)
-    }
-  }
-
-  useEffect(() => {
-    if (tab === 'prizes' && isConnected) scanClaimablePrizes()
-  }, [tab, isConnected, address, lastAwardedDrawId])
-
   async function handleClaimAll() {
-    if (!address || claimable.length === 0) return
+    if (!address || claimablePrizes.length === 0) return
     setTxError('')
     setClaiming(true)
     try {
-      const byTier = claimable.reduce((acc, item) => {
+      const byTier = claimablePrizes.reduce((acc, item) => {
         if (!acc[item.tier]) acc[item.tier] = []
         acc[item.tier].push(item.prizeIndex)
         return acc
@@ -411,7 +396,7 @@ export default function App() {
         })
         await waitForTx(wagmiConfig, hash)
       }
-      await scanClaimablePrizes()
+      await refreshClaimablePrizes()
       await refreshBalances()
     } catch (err) {
       setTxError(err.shortMessage || err.message || 'Claim failed')
@@ -470,6 +455,9 @@ export default function App() {
                 >
                   <span className="tab-icon">{t.icon}</span>
                   {t.label}
+                  {t.id === 'prizes' && claimablePrizes.length > 0 && (
+                    <span className="tab-badge">{claimablePrizes.length}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -485,6 +473,29 @@ export default function App() {
                   <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
                   <span className="jackpot-sub">USDG · daily draws</span>
                 </div>
+
+                {isConnected && (
+                  <button
+                    type="button"
+                    className={`claimable-banner ${claimablePrizes.length > 0 ? 'has-prizes' : ''}`}
+                    onClick={() => setTab('prizes')}
+                  >
+                    <div className="claimable-banner-copy">
+                      <span className="claimable-banner-label">To claim</span>
+                      <strong className="claimable-banner-value">
+                        {scanningPrizes ? '…' : `$${formatUsd(claimableTotalUsd)}`}
+                      </strong>
+                      <span className="claimable-banner-hint">
+                        {scanningPrizes
+                          ? 'Scanning prizes…'
+                          : claimablePrizes.length > 0
+                            ? `${claimablePrizes.length} unclaimed prize${claimablePrizes.length > 1 ? 's' : ''}`
+                            : 'No prizes to claim yet'}
+                      </span>
+                    </div>
+                    <span className="claimable-banner-action">Prizes →</span>
+                  </button>
+                )}
 
                 <div className="stats-grid stats-compact">
                   <div className="stat-card">
@@ -533,6 +544,12 @@ export default function App() {
                     Draw #{lastAwardedDrawId?.toString() || lastSubgraphDraw?.drawId?.toString() || '0'} last awarded.
                     {lastAwardedDrawId === 0n && !lastSubgraphDraw && ' First draw pending.'}
                   </p>
+                  {isConnected && (
+                    <div className="claimable-total">
+                      <span>Claimable now</span>
+                      <strong>{scanningPrizes ? '…' : `$${formatUsd(claimableTotalUsd)}`}</strong>
+                    </div>
+                  )}
                 </div>
 
                 {!isConnected ? (
@@ -541,13 +558,18 @@ export default function App() {
                   </div>
                 ) : scanningPrizes ? (
                   <p className="muted">Scanning on-chain…</p>
-                ) : claimable.length > 0 ? (
+                ) : claimablePrizes.length > 0 ? (
                   <>
                     <div className="prize-wins">
-                      {claimable.map((c) => (
+                      {claimablePrizes.map((c) => (
                         <div key={`${c.tier}-${c.prizeIndex}`} className="prize-win-card">
-                          <span className="prize-tier">{TIER_LABELS[c.tier] || `Tier ${c.tier}`}</span>
-                          <strong>Prize #{c.prizeIndex + 1}</strong>
+                          <div>
+                            <span className="prize-tier">{TIER_LABELS[c.tier] || `Tier ${c.tier}`}</span>
+                            <strong>Prize #{c.prizeIndex + 1}</strong>
+                          </div>
+                          <strong className="prize-win-amount">
+                            ${formatUsd(formatUnits(c.amount, 6))}
+                          </strong>
                         </div>
                       ))}
                     </div>
@@ -557,14 +579,16 @@ export default function App() {
                       disabled={claiming || isBusy}
                       onClick={handleClaimAll}
                     >
-                      {claiming ? 'Claiming…' : `Claim ${claimable.length} prize${claimable.length > 1 ? 's' : ''}`}
+                      {claiming
+                        ? 'Claiming…'
+                        : `Claim $${formatUsd(claimableTotalUsd)}`}
                     </button>
                   </>
                 ) : (
                   <div className="empty-prizes empty-compact">
                     <p><strong>No prizes to claim.</strong></p>
                     <p className="muted">Keep deposited to build TWAB before the next draw.</p>
-                    <button type="button" className="btn btn-ghost" onClick={scanClaimablePrizes}>Refresh</button>
+                    <button type="button" className="btn btn-ghost" onClick={refreshClaimablePrizes}>Refresh</button>
                   </div>
                 )}
 
@@ -655,6 +679,7 @@ export default function App() {
                 walletBalance={usdgBalance?.value}
                 walletUsd={walletUsd}
                 maxWithdraw={withdrawableMax}
+                withdrawLiquidityLimited={withdrawLiquidityLimited}
                 depositAmount={amount}
                 onDepositAmountChange={setAmount}
                 withdrawAmount={withdrawAmount}

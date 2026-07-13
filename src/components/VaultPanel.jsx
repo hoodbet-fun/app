@@ -1,6 +1,6 @@
 import { parseUnits } from 'viem'
 import { AmountField } from './AmountField.jsx'
-import { VAULT_DEPOSIT_BLOCKED } from '../deposit.js'
+import { VAULT_DEPOSIT_BLOCKED, VAULT_WITHDRAW_LIQUIDITY_ERROR } from '../deposit.js'
 import { formatUsd } from '../format.js'
 import { txExplorerUrl } from '../tx.js'
 
@@ -29,6 +29,7 @@ export function VaultPanel({
   walletBalance,
   walletUsd,
   maxWithdraw,
+  withdrawLiquidityLimited = false,
   depositAmount,
   onDepositAmountChange,
   withdrawAmount,
@@ -53,7 +54,8 @@ export function VaultPanel({
   const depositExceeds = depositUnits != null && walletBalance != null && depositUnits > walletBalance
 
   const withdrawUnits = parseAmount(withdrawAmount)
-  const withdrawExceeds = withdrawUnits != null && maxWithdraw != null && withdrawUnits > maxWithdraw
+  const withdrawExceeds =
+    withdrawUnits != null && maxWithdraw != null && maxWithdraw > 0n && withdrawUnits > maxWithdraw
 
   let depositLabel = 'Deposit'
   if (depositPaused) depositLabel = 'Deposits paused'
@@ -66,12 +68,18 @@ export function VaultPanel({
   else if (depositAmount) depositLabel = `Deposit $${formatUsd(depositAmount)}`
 
   let withdrawLabel = withdrawAmount ? `Withdraw $${formatUsd(withdrawAmount)}` : 'Withdraw all'
+  if (withdrawLiquidityLimited && !withdrawAmount) withdrawLabel = 'Enter amount to withdraw'
   if (txStep === 'withdrawing' && isWalletPending) withdrawLabel = 'Confirm in wallet…'
   else if (txStep === 'withdrawing' && isConfirming) withdrawLabel = 'Confirming…'
   else if (txStep === 'success' && !isDeposit) withdrawLabel = 'Done ✓'
 
   const canDeposit = !depositPaused && depositAmount && !depositExceeds && !isBusy && txStep !== 'success' && !wrongChain && !lowGas
-  const canWithdraw = maxWithdraw && maxWithdraw > 0n && !withdrawExceeds && !isBusy && !wrongChain && !lowGas
+  const canWithdraw =
+    !withdrawExceeds &&
+    !isBusy &&
+    !wrongChain &&
+    !lowGas &&
+    ((withdrawUnits != null && withdrawUnits > 0n) || (maxWithdraw > 0n && !withdrawAmount))
 
   const statusLine = isWalletPending
     ? 'Confirm in your wallet'
@@ -215,16 +223,28 @@ export function VaultPanel({
             </>
           ) : (
             <>
+              {withdrawLiquidityLimited && (
+                <div className="vault-alert" role="status">
+                  <div className="vault-alert-copy">
+                    <strong>Limited instant liquidity</strong>
+                    <p>{VAULT_WITHDRAW_LIQUIDITY_ERROR}</p>
+                  </div>
+                </div>
+              )}
               <AmountField
                 id="withdraw-amount"
                 label="Amount"
                 value={withdrawAmount}
                 onChange={onWithdrawAmountChange}
-                maxBalance={maxWithdraw || 0n}
-                disabled={isBusy || !maxWithdraw || maxWithdraw === 0n}
+                maxBalance={maxWithdraw > 0n ? maxWithdraw : undefined}
+                disabled={isBusy}
                 compact
-                error={withdrawExceeds ? 'Exceeds vault balance' : null}
-                hint="No lock-up · withdrawing lowers your TWAB odds"
+                error={withdrawExceeds ? 'Exceeds available withdraw' : null}
+                hint={
+                  withdrawLiquidityLimited
+                    ? 'Enter a small amount — full balance may not be instant while Morpho lends USDG.'
+                    : 'No lock-up · withdrawing lowers your TWAB odds'
+                }
               />
 
               {statusLine && <p className="vault-status">{statusLine}</p>}

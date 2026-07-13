@@ -4,7 +4,7 @@ import { maxUint256, parseUnits } from 'viem'
 import { readContract, simulateContract } from 'wagmi/actions'
 import { robinhoodChain } from '../config.js'
 import { erc20Abi, erc4626Abi } from '../abis.js'
-import { parseDepositError, VAULT_YIELD_BUFFER_ERROR } from '../deposit.js'
+import { parseDepositError, VAULT_WITHDRAW_LIQUIDITY_ERROR } from '../deposit.js'
 
 function txMessage(err) {
   return parseDepositError(err)
@@ -229,14 +229,18 @@ export function useVaultTx({
 
   const startWithdraw = useCallback(
     async ({ amountStr, max }) => {
-      if (!address || !max || max === 0n) return
+      if (!address) return
+      if (!amountStr && (!max || max === 0n)) {
+        setTxError(VAULT_WITHDRAW_LIQUIDITY_ERROR)
+        return
+      }
       setTxError('')
       processedHashRef.current = null
 
       const assets = amountStr ? parseUnits(amountStr, 6) : max
       if (assets === 0n) return
-      if (assets > max) {
-        setTxError('Amount exceeds available balance')
+      if (max > 0n && assets > max) {
+        setTxError('Amount exceeds available withdraw')
         return
       }
 

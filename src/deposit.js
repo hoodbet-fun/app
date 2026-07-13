@@ -10,10 +10,14 @@ export const VAULT_DEPOSIT_BLOCKED = {
 
 export const VAULT_YIELD_BUFFER_ERROR = VAULT_DEPOSIT_BLOCKED.description
 
+export const VAULT_WITHDRAW_LIQUIDITY_ERROR =
+  'Instant withdraw is limited: most vault USDG is deployed in Morpho lending markets. Try a smaller amount, or wait for borrowers to repay and free liquidity.'
+
 export function parseDepositError(err) {
   const msg = err?.shortMessage || err?.message || err?.cause?.message || 'Transaction failed'
   if (/rejected|denied|cancel/i.test(msg)) return 'Transaction cancelled in wallet.'
   if (/LossyDeposit|0x2b8b305a/i.test(msg)) return VAULT_YIELD_BUFFER_ERROR
+  if (/TransferReverted|0xace2a47e/i.test(msg)) return VAULT_WITHDRAW_LIQUIDITY_ERROR
   if (/InsufficientAllowance|0x13be252b/i.test(msg)) {
     return 'USDG approval required. Click Deposit again to approve, then the deposit will run automatically.'
   }

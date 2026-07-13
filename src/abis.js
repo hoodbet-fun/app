@@ -129,6 +129,25 @@ export const prizePoolAbi = [
     ],
     outputs: [{ type: 'bool' }],
   },
+  {
+    name: 'wasClaimed',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: '_vault', type: 'address' },
+      { name: '_winner', type: 'address' },
+      { name: '_tier', type: 'uint8' },
+      { name: '_prizeIndex', type: 'uint32' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    name: 'getTierPrizeSize',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: '_tier', type: 'uint8' }],
+    outputs: [{ type: 'uint104' }],
+  },
 ]
 
 export const claimerAbi = [

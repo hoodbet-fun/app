@@ -510,6 +510,95 @@ body {
   background: rgba(0, 200, 5, 0.14); color: var(--primary);
   box-shadow: inset 0 0 0 1px rgba(0, 200, 5, 0.25);
 }
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1400;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.claimable-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.claimable-banner:hover {
+  border-color: rgba(255, 215, 0, 0.35);
+  background: rgba(255, 215, 0, 0.05);
+}
+.claimable-banner.has-prizes {
+  border-color: rgba(255, 215, 0, 0.35);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.15));
+}
+.claimable-banner-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.claimable-banner-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  color: var(--text);
+  margin: 0.15rem 0;
+}
+.claimable-banner.has-prizes .claimable-banner-value { color: var(--gold); }
+.claimable-banner-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.claimable-banner-action {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+.claimable-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  background: rgba(255, 215, 0, 0.06);
+}
+.claimable-total span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.claimable-total strong {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--gold);
+}
 
 .panel {
   background: var(--surface); border: 1px solid var(--border);
@@ -559,9 +648,15 @@ body {
 
 .prize-wins { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
 .prize-win-card {
-  display: grid; grid-template-columns: auto 1fr auto; gap: 0.75rem; align-items: center;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
   padding: 1rem; background: rgba(255, 215, 0, 0.08);
   border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 12px;
+}
+.prize-win-amount {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 1.05rem;
+  white-space: nowrap;
 }
 .prize-tier {
   font-size: 0.75rem; font-weight: 700; text-transform: uppercase;

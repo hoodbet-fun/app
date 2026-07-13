@@ -26,7 +26,7 @@ export const addresses = {
   hoodFeeHarvester: '0x7FB9C432e78101a6bB59e681458888acaA3db532',
   claimer: '0x71ec0971e8f8e35568a4bbe0fc118e6ca0ebe707',
   hoodPoints: '',
-  hoodToken: '',
+  hoodToken: '0x3b4b9E8982449aa6712F0d13162252A4a871D43e',
 }
 
 export const links = {
