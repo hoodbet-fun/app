@@ -15,6 +15,7 @@ import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, formatCountdown, formatUsd, shortenAddress } from './format.js'
 import { VaultPanel } from './components/VaultPanel.jsx'
+import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { waitForTx } from './tx.js'
 
@@ -330,7 +331,7 @@ export default function App() {
             <img src="/logo.png" alt="HoodBet" />
             <div>
               <span className="brand-title">hood<em>bet</em></span>
-              <span className="brand-sub">HoodPot · No-loss lottery</span>
+              <StackStrip className="stack-strip-nav" />
             </div>
           </div>
           <div className="nav-actions">
@@ -357,7 +358,6 @@ export default function App() {
         <div className="dashboard">
           <aside className="dashboard-side">
             <div className="side-header">
-              <p className="eyebrow">Save together · Win together</p>
               <h1 className="side-title">
                 HoodPot <span className="accent">no-loss lottery</span>
               </h1>

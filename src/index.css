@@ -40,7 +40,77 @@ body {
 .nav-brand img { height: 44px; width: auto; }
 .brand-title { display: block; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.2; }
 .brand-title em { color: var(--primary); font-style: normal; }
-.brand-sub { display: block; font-size: 0.78rem; color: var(--muted); }
+
+/* Protocol stack — aligned with landing */
+.stack-strip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.7rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 200, 5, 0.22);
+  background: linear-gradient(135deg, rgba(0, 200, 5, 0.08), rgba(255, 215, 0, 0.03));
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 0.35rem;
+}
+.stack-strip-nav { max-width: 100%; }
+.stack-strip-side { margin-bottom: 0.85rem; font-size: 0.76rem; }
+.stack-strip-protocols {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+}
+.stack-strip-item { display: inline-flex; align-items: center; gap: 0.1rem; }
+.stack-strip-dot { color: rgba(255, 255, 255, 0.35); font-weight: 700; padding: 0 0.08rem; }
+.stack-strip-protocols a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.stack-strip-protocols a:hover { color: var(--primary); }
+.stack-strip-current { color: var(--primary); }
+.stack-strip-divider {
+  width: 1px;
+  height: 0.95rem;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+.stack-strip-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem 0.22rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 200, 5, 0.12);
+  border: 1px solid rgba(0, 200, 5, 0.25);
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.stack-strip-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: stack-live-pulse 2s ease-in-out infinite;
+}
+.stack-strip-chain {
+  color: rgba(0, 200, 5, 0.7);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+@keyframes stack-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 200, 5, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(0, 200, 5, 0); }
+}
+
 .nav-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .nav-link { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
 .nav-link:hover { color: var(--primary); }
