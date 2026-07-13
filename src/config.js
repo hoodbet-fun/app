@@ -23,9 +23,9 @@ export const addresses = {
 }
 
 export const links = {
-  docs: import.meta.env.VITE_GITBOOK_URL || 'https://hoodbet.gitbook.io/hoodbet-docs',
-  landing: import.meta.env.VITE_LANDING_URL || 'https://hoodbet.fun',
-  github: import.meta.env.VITE_GITHUB_URL || 'https://github.com/hoodbet-fun',
+  docs: 'https://hoodbet.gitbook.io/hoodbet-docs',
+  landing: 'https://hoodbet.fun',
+  github: 'https://github.com/hoodbet-fun',
 }
 
 export const wagmiConfig = createConfig({

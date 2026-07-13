@@ -16,11 +16,11 @@ npm run build
 # deploy dist/ to app.hoodbet.fun
 ```
 
-## Environment
+Public URLs are hardcoded in `src/config.js`. Optional env vars for contract addresses after deploy:
 
-| Variable | Production |
-|----------|------------|
-| `VITE_GITBOOK_URL` | `https://hoodbet.gitbook.io/hoodbet-docs` |
-| `VITE_LANDING_URL` | `https://hoodbet.fun` |
-| `VITE_GITHUB_URL` | `https://github.com/hoodbet-fun` |
-
+| Variable | Purpose |
+|----------|---------|
+| `VITE_PRIZE_VAULT` | PrizeVault address |
+| `VITE_HOOD_POINTS` | HoodPointsRegistry address |
+| `VITE_HOOD_TOKEN` | $HOOD token address |
+| `VITE_RPC_URL` | Custom RPC (default: Robinhood mainnet) |
