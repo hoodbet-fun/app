@@ -13,16 +13,14 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 import { addresses, links, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, formatCountdown, formatUsd, shortenAddress } from './format.js'
+import { VaultPanel } from './components/VaultPanel.jsx'
 
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
 const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
 const TABS = [
-  { id: 'deposit', label: 'Deposit', icon: '↓' },
-  { id: 'withdraw', label: 'Withdraw', icon: '↑' },
+  { id: 'vault', label: 'Vault', icon: '◆' },
   { id: 'prizes', label: 'Prizes', icon: '★' },
 ]
-
-const QUICK_AMOUNTS = ['10', '50', '100', '500']
 
 function TierBadge({ address }) {
   const { data: tierName } = useReadContract({
@@ -36,7 +34,8 @@ function TierBadge({ address }) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState('deposit')
+  const [tab, setTab] = useState('vault')
+  const [vaultMode, setVaultMode] = useState('deposit')
   const [amount, setAmount] = useState('')
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [txError, setTxError] = useState('')
@@ -174,10 +173,15 @@ export default function App() {
   }
 
   async function handleDeposit() {
-    if (!address || !amount) return
+    if (!address || !amount || !usdgBalance) return
     setTxError('')
     try {
       const assets = parseUnits(amount, 6)
+      if (assets > usdgBalance.value) {
+        setTxError('Insufficient USDG balance')
+        return
+      }
+      if (assets === 0n) return
       if (needsApproval) {
         setTxStep('approving')
         const approveHash = await writeContractAsync({
@@ -211,10 +215,13 @@ export default function App() {
     if (!address) return
     setTxError('')
     try {
-      const assets = withdrawAmount
-        ? parseUnits(withdrawAmount, 6)
-        : maxWithdraw || vaultAssetsUser || 0n
+      const max = maxWithdraw || vaultAssetsUser || 0n
+      const assets = withdrawAmount ? parseUnits(withdrawAmount, 6) : max
       if (assets === 0n) return
+      if (assets > max) {
+        setTxError('Amount exceeds available balance')
+        return
+      }
       setTxStep('withdrawing')
       const hash = await writeContractAsync({
         address: vaultAddress,
@@ -304,14 +311,6 @@ export default function App() {
     }
   }
 
-  const depositLabel = (() => {
-    if (txStep === 'approving') return 'Step 1/2 — Approve USDG…'
-    if (txStep === 'depositing') return 'Step 2/2 — Depositing…'
-    if (txStep === 'success') return 'Done ✓'
-    if (needsApproval && amount) return 'Approve & deposit'
-    return 'Deposit USDG'
-  })()
-
   return (
     <div className="app">
       <div className="container">
@@ -396,107 +395,26 @@ export default function App() {
         </div>
 
         <div className="panel">
-          {tab === 'deposit' && (
-            <div className="panel-inner">
-              <div className="panel-head">
-                <h2>Enter HoodPot</h2>
-                <p>Deposit USDG into the prize vault. TWAB starts counting immediately for the current draw.</p>
-              </div>
-
-              {!isConnected ? (
-                <div className="connect-prompt">
-                  <p>Connect your wallet on Robinhood Chain (4663) to deposit.</p>
-                  <button className="btn btn-primary btn-lg" type="button" onClick={() => connect({ connector: connectors[0] })}>
-                    Connect wallet
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="balance-row">
-                    <span>Wallet balance</span>
-                    <strong>{formatUsd(walletUsd)} USDG</strong>
-                  </div>
-
-                  <label className="field-label" htmlFor="deposit-amount">Amount</label>
-                  <div className="amount-input-wrap">
-                    <input
-                      id="deposit-amount"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                    />
-                    <button type="button" className="btn-max" onClick={() => setAmount(walletUsd)}>MAX</button>
-                    <span className="token-tag">USDG</span>
-                  </div>
-
-                  <div className="quick-amounts">
-                    {QUICK_AMOUNTS.map((q) => (
-                      <button key={q} type="button" className="chip" onClick={() => setAmount(q)}>${q}</button>
-                    ))}
-                  </div>
-
-                  {amount && needsApproval && (
-                    <p className="step-hint">2-step flow: approve USDG once, then deposit (infinite approval).</p>
-                  )}
-
-                  <button
-                    className="btn btn-primary btn-lg btn-full"
-                    type="button"
-                    disabled={!amount || isPending || txStep === 'success'}
-                    onClick={handleDeposit}
-                  >
-                    {isPending || txStep === 'approving' || txStep === 'depositing' ? depositLabel : depositLabel}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {tab === 'withdraw' && (
-            <div className="panel-inner">
-              <div className="panel-head">
-                <h2>Withdraw</h2>
-                <p>Exit anytime — no penalty on principal. Partial or full withdrawal.</p>
-              </div>
-
-              {!isConnected ? (
-                <div className="connect-prompt">
-                  <p>Connect wallet to withdraw your HoodPot position.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="balance-row">
-                    <span>Available to withdraw</span>
-                    <strong>${formatUsd(position)} USDG</strong>
-                  </div>
-
-                  <label className="field-label" htmlFor="withdraw-amount">Amount (leave empty for max)</label>
-                  <div className="amount-input-wrap">
-                    <input
-                      id="withdraw-amount"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                    />
-                    <button type="button" className="btn-max" onClick={() => setWithdrawAmount(position)}>MAX</button>
-                    <span className="token-tag">USDG</span>
-                  </div>
-
-                  <button
-                    className="btn btn-outline btn-lg btn-full"
-                    type="button"
-                    disabled={!vaultShares || vaultShares === 0n || isPending}
-                    onClick={handleWithdraw}
-                  >
-                    {txStep === 'withdrawing' ? 'Withdrawing…' : withdrawAmount ? 'Withdraw amount' : 'Withdraw all'}
-                  </button>
-                </>
-              )}
-            </div>
+          {tab === 'vault' && (
+            <VaultPanel
+              mode={vaultMode}
+              onModeChange={setVaultMode}
+              isConnected={isConnected}
+              onConnect={() => connect({ connector: connectors[0] })}
+              walletBalance={usdgBalance?.value}
+              walletUsd={walletUsd}
+              maxWithdraw={maxWithdraw}
+              depositAmount={amount}
+              onDepositAmountChange={setAmount}
+              withdrawAmount={withdrawAmount}
+              onWithdrawAmountChange={setWithdrawAmount}
+              needsApproval={needsApproval}
+              txStep={txStep}
+              isPending={isPending}
+              onDeposit={handleDeposit}
+              onWithdraw={handleWithdraw}
+              positionUsd={position}
+            />
           )}
 
           {tab === 'prizes' && (
