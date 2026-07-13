@@ -147,6 +147,9 @@ body {
   top: 0.75rem;
   align-self: start;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 .side-header { margin-bottom: 0.15rem; }
 .side-title {
@@ -606,6 +609,86 @@ body {
 }
 .action-card.panel { border-radius: 14px; }
 .action-card .btn-full { padding: 0.65rem 1rem; font-size: 0.9rem; }
+
+.hood-token-card {
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.08), rgba(0, 0, 0, 0.2));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.hood-token-card-compact {
+  margin-bottom: 0;
+}
+.hood-token-card-head { margin-bottom: 0.65rem; }
+.hood-token-card-label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 0.15rem;
+}
+.hood-token-card-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+.hood-token-address-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.28);
+}
+.hood-token-address {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.82);
+  word-break: break-all;
+  line-height: 1.35;
+}
+.hood-token-copy {
+  flex-shrink: 0;
+  padding: 0.3rem 0.55rem;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 200, 5, 0.35);
+  background: rgba(0, 200, 5, 0.1);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hood-token-copy:hover { background: rgba(0, 200, 5, 0.18); }
+.hood-token-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+.hood-token-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.hood-token-actions .btn-sm {
+  padding: 0.45rem 0.5rem;
+  font-size: 0.75rem;
+}
+.hood-token-note {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.hood-token-note strong { color: var(--gold); font-weight: 600; }
 .panel-inner { padding: 1.5rem; }
 .panel-head h2 { font-family: var(--font-display); margin: 0 0 0.35rem; font-size: 1.35rem; }
 .panel-head p { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.95rem; }

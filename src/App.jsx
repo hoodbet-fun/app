@@ -14,6 +14,7 @@ import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, explorerTx, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
 import { VaultPanel } from './components/VaultPanel.jsx'
+import { HoodTokenCard } from './components/HoodTokenCard.jsx'
 import { VaultSnapshot } from './components/VaultSnapshot.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
@@ -235,7 +236,8 @@ export default function App() {
   const onRobinhood = isConnected && activeChainId === robinhoodChain.id
 
   const countdownSec = drawClosesAt ? Number(drawClosesAt) - now : null
-  const jackpot = prizeBalance ? formatUnits(prizeBalance, 6) : null
+  const jackpot =
+    prizeBalance !== undefined ? formatUnits(prizeBalance, 6) : null
   const tvlOnChain = vaultAssets ? formatUnits(vaultAssets, 6) : null
   const tvlFromSubgraph = subgraphVault?.balance != null
     ? formatUnits(BigInt(subgraphVault.balance), 6)
@@ -470,8 +472,8 @@ export default function App() {
                     <strong>{vaultApyLoading ? '…' : formatApyPercent(vaultSnapshot?.netApy)}</strong>
                   </div>
                   <span className="jackpot-label">Prize pool</span>
-                  <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
-                  <span className="jackpot-sub">USDG · daily draws</span>
+                  <strong className="jackpot-value">${jackpot != null ? formatUsd(jackpot) : '—'}</strong>
+                  <span className="jackpot-sub">USDG · daily draws · grows from yield</span>
                 </div>
 
                 {isConnected && (
@@ -698,6 +700,7 @@ export default function App() {
                 txError={txError}
               />
             </div>
+            <HoodTokenCard className="hood-token-card-compact panel" />
           </main>
         </div>
 

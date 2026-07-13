@@ -25,7 +25,7 @@ export const addresses = {
   twabController: '0x534eb000af980efe5dc8f7b1b579c3c4baf87942',
   hoodFeeHarvester: '0x7FB9C432e78101a6bB59e681458888acaA3db532',
   claimer: '0x71ec0971e8f8e35568a4bbe0fc118e6ca0ebe707',
-  hoodPoints: '',
+  hoodPoints: '0x7EBb6063C98e2D9faAD4C67A99d6A259f7810901',
   hoodToken: '0x3b4b9E8982449aa6712F0d13162252A4a871D43e',
 }
 
@@ -34,6 +34,12 @@ export const links = {
   landing: 'https://hoodbet.fun',
   github: 'https://github.com/hoodbet-fun',
   telegram: 'https://t.me/+8KdjgSVzZr5hZjc0',
+}
+
+export const hoodTokenLinks = {
+  virtuals: 'https://app.virtuals.io/virtuals/105591',
+  explorer: `https://robinhoodchain.blockscout.com/address/${addresses.hoodToken}`,
+  tiers: `${links.landing}#hood-tiers`,
 }
 
 export const subgraphUrl =
