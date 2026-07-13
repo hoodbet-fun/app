@@ -186,26 +186,44 @@ body {
   padding: 1rem 1.15rem;
   border-radius: 16px;
 }
-.jackpot-dual {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem 1.25rem;
-  align-items: end;
+.jackpot-hero {
+  position: relative;
+  padding-top: 0.9rem;
+  padding-right: 1rem;
 }
-.jackpot-head-col {
+.jackpot-apy-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-}
-.jackpot-apy-col {
-  text-align: right;
   align-items: flex-end;
+  gap: 0.1rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 200, 5, 0.35);
+  background: rgba(0, 200, 5, 0.12);
+  text-align: right;
+}
+.jackpot-apy-badge-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.55);
+}
+.jackpot-apy-badge strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--primary);
 }
 .jackpot-compact .jackpot-value {
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(1.65rem, 3.5vw, 2.15rem);
+  padding-right: 5.5rem;
 }
-.jackpot-apy-value {
-  color: var(--primary) !important;
+.jackpot-compact .jackpot-sub {
+  font-size: 0.8rem;
 }
 .stats-compact {
   grid-template-columns: repeat(2, 1fr);
@@ -222,7 +240,34 @@ body {
   padding: 1rem 1.1rem;
 }
 .vault-snapshot-compact {
-  padding: 0.9rem 1rem;
+  padding: 0.85rem 0.9rem;
+}
+.vault-snapshot-compact .vault-snapshot-head {
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-bottom: 0.7rem;
+}
+.vault-snapshot-compact .vault-snapshot-apy-hero {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+}
+.vault-snapshot-compact .vault-snapshot-apy-value {
+  font-size: 1.35rem;
+}
+.vault-snapshot-compact .vault-snapshot-apy-hint {
+  display: none;
+}
+.vault-snapshot-compact .vault-snapshot-head-side {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.vault-snapshot-compact .vault-snapshot-tvl {
+  text-align: right;
 }
 .vault-snapshot-head {
   display: grid;
@@ -468,8 +513,10 @@ body {
 
 .panel {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 20px; overflow: hidden; margin-bottom: 1rem;
+  border-radius: 16px; overflow: hidden; margin-bottom: 1rem;
 }
+.action-card.panel { border-radius: 14px; }
+.action-card .btn-full { padding: 0.65rem 1rem; font-size: 0.9rem; }
 .panel-inner { padding: 1.5rem; }
 .panel-head h2 { font-family: var(--font-display); margin: 0 0 0.35rem; font-size: 1.35rem; }
 .panel-head p { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
@@ -627,11 +674,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 6px;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.06);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   line-height: 1;
 }
 .vault-segment-btn.active.deposit {
@@ -640,7 +687,7 @@ body {
   border-color: rgba(0, 200, 5, 0.22);
   border-bottom-color: var(--surface);
   margin-bottom: -1px;
-  padding-bottom: calc(0.65rem + 1px);
+  padding-bottom: calc(0.5rem + 1px);
 }
 .vault-segment-btn.active.withdraw {
   color: var(--gold);
@@ -648,7 +695,7 @@ body {
   border-color: rgba(255, 215, 0, 0.2);
   border-bottom-color: var(--surface);
   margin-bottom: -1px;
-  padding-bottom: calc(0.65rem + 1px);
+  padding-bottom: calc(0.5rem + 1px);
 }
 .vault-segment-btn.active.deposit .vault-segment-icon {
   background: rgba(0, 200, 5, 0.15);
@@ -660,18 +707,18 @@ body {
 }
 
 .vault-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  padding: 0.65rem 0.85rem 0.75rem;
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem 0.55rem;
   background: var(--surface);
 }
 .vault-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: 10px;
+  gap: 0.1rem;
+  flex: 1;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   min-width: 0;
@@ -681,7 +728,7 @@ body {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.06), rgba(0, 0, 0, 0.15));
 }
 .vault-stat-label {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -689,7 +736,7 @@ body {
 }
 .vault-stat-value {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.92rem;
   color: var(--text);
   line-height: 1.1;
   white-space: nowrap;
@@ -699,20 +746,12 @@ body {
 .vault-stat-primary .vault-stat-value { color: var(--gold); }
 
 .vault-panel-body {
-  padding: 0.85rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  padding: 0.65rem 0.7rem 0.7rem;
   background: var(--surface);
 }
 .vault-panel-main {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 0;
-  overflow-y: auto;
 }
 .vault-panel-main.is-paused {
   opacity: 0.55;
@@ -720,12 +759,10 @@ body {
   user-select: none;
 }
 .vault-panel-foot {
-  margin-top: auto;
-  padding-top: 0.75rem;
+  margin-top: 0.55rem;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  flex-shrink: 0;
+  gap: 0.35rem;
 }
 
 .vault-alert {
@@ -772,12 +809,12 @@ body {
 
 .vault-empty-state {
   text-align: center;
-  padding: 0.75rem 0.25rem 0.25rem;
+  padding: 0.35rem 0.15rem 0.15rem;
 }
 .vault-empty-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.92rem;
   color: var(--text);
 }
 .vault-empty-text {
@@ -814,14 +851,19 @@ body {
 }
 .tx-link-inline:hover { text-decoration: underline; }
 
-.amount-field-compact { margin-bottom: 0.35rem; }
-.amount-field-compact .amount-input-wrap input { font-size: 1.35rem; }
-.amount-field-compact .input-prefix { font-size: 1.05rem; }
-.amount-field-compact .percent-row { margin-top: 0.5rem; gap: 0.35rem; }
-.amount-field-compact .chip { padding: 0.35rem 0.5rem; font-size: 0.78rem; }
+.amount-field-compact { margin-bottom: 0.2rem; }
+.amount-field-compact .amount-input-wrap {
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+}
+.amount-field-compact .amount-input-wrap input { font-size: 1.1rem; }
+.amount-field-compact .input-prefix { font-size: 0.95rem; }
+.amount-field-compact .percent-row { margin-top: 0.4rem; gap: 0.3rem; }
+.amount-field-compact .chip { padding: 0.28rem 0.45rem; font-size: 0.74rem; }
 .amount-field-compact .field-hint,
-.amount-field-compact .field-error { margin-top: 0.45rem; font-size: 0.76rem; }
-.amount-field-compact .balance-pill { font-size: 0.72rem; padding: 0.22rem 0.55rem; max-width: 100%; }
+.amount-field-compact .field-error { margin-top: 0.35rem; font-size: 0.72rem; }
+.amount-field-compact .balance-pill { font-size: 0.68rem; padding: 0.18rem 0.5rem; max-width: 100%; }
+.amount-field-compact .amount-field-header { margin-bottom: 0.35rem; }
 .amount-field.is-disabled { opacity: 0.7; }
 
 .tx-steps-compact { margin-bottom: 0.5rem; gap: 0.5rem; }

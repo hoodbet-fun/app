@@ -476,19 +476,14 @@ export default function App() {
 
             {tab === 'vault' ? (
               <div className="side-stack">
-                <div className="jackpot-card jackpot-compact jackpot-dual">
-                  <div className="jackpot-head-col">
-                    <span className="jackpot-label">Prize pool</span>
-                    <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
-                    <span className="jackpot-sub">USDG · daily draws</span>
+                <div className="jackpot-card jackpot-compact jackpot-hero">
+                  <div className="jackpot-apy-badge" aria-label="Net APY">
+                    <span className="jackpot-apy-badge-label">Net APY</span>
+                    <strong>{vaultApyLoading ? '…' : formatApyPercent(vaultSnapshot?.netApy)}</strong>
                   </div>
-                  <div className="jackpot-head-col jackpot-apy-col">
-                    <span className="jackpot-label">Net APY</span>
-                    <strong className="jackpot-value jackpot-apy-value">
-                      {vaultApyLoading ? '…' : formatApyPercent(vaultSnapshot?.netApy)}
-                    </strong>
-                    <span className="jackpot-sub">Morpho yield</span>
-                  </div>
+                  <span className="jackpot-label">Prize pool</span>
+                  <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
+                  <span className="jackpot-sub">USDG · daily draws</span>
                 </div>
 
                 <div className="stats-grid stats-compact">
