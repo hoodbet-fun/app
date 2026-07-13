@@ -134,7 +134,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   gap: 1rem;
-  align-items: stretch;
+  align-items: start;
 }
 .dashboard-side {
   display: flex;
@@ -145,9 +145,8 @@ body {
 .dashboard-action {
   position: sticky;
   top: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  align-self: start;
+  width: 100%;
 }
 .side-header { margin-bottom: 0.15rem; }
 .side-title {
@@ -167,10 +166,7 @@ body {
 .action-card {
   margin-bottom: 0;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
+  width: 100%;
 }
 .error-inline {
   margin: 0.5rem 0 0;
@@ -595,10 +591,6 @@ body {
 /* Vault panel */
 .vault-panel {
   padding: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 }
 .vault-panel-top {
   border-bottom: 1px solid var(--border);
@@ -608,21 +600,21 @@ body {
 .vault-segment {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-  padding: 0.5rem 0.65rem 0;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem 0;
 }
 .vault-segment-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  padding: 0.65rem 0.5rem;
+  gap: 0.35rem;
+  padding: 0.5rem 0.45rem;
   border: 1px solid transparent;
-  border-radius: 10px 10px 0 0;
+  border-radius: 8px 8px 0 0;
   background: transparent;
   color: var(--muted);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
