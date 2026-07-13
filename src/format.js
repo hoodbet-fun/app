@@ -4,6 +4,16 @@ export function formatUsd(value, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
 }
 
+/** Full-precision USDG display (up to 6 decimals, trims trailing zeros). */
+export function formatUsdg(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  const fixed = n.toFixed(6).replace(/\.?0+$/, '')
+  const [int, frac] = fixed.split('.')
+  const intFmt = Number(int).toLocaleString('en-US')
+  return frac ? `${intFmt}.${frac}` : intFmt
+}
+
 export function shortenAddress(addr) {
   if (!addr) return ''
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`

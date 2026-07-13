@@ -6,19 +6,22 @@ import {
   useReadContract,
   useBalance,
   useWriteContract,
+  useChainId,
+  useSwitchChain,
 } from 'wagmi'
-import { formatUnits, maxUint256, parseUnits, zeroAddress } from 'viem'
+import { formatUnits, parseEther, parseUnits, zeroAddress } from 'viem'
 import { readContract } from 'wagmi/actions'
-import { waitForTransactionReceipt } from 'wagmi/actions'
-import { addresses, links, wagmiConfig } from './config.js'
+import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, formatCountdown, formatUsd, shortenAddress } from './format.js'
 import { VaultPanel } from './components/VaultPanel.jsx'
+import { useVaultTx } from './hooks/useVaultTx.js'
+import { waitForTx } from './tx.js'
 
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
 const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
 const TABS = [
-  { id: 'vault', label: 'Vault', icon: '◆' },
+  { id: 'vault', label: 'Overview', icon: '◆' },
   { id: 'prizes', label: 'Prizes', icon: '★' },
 ]
 
@@ -38,16 +41,17 @@ export default function App() {
   const [vaultMode, setVaultMode] = useState('deposit')
   const [amount, setAmount] = useState('')
   const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [txError, setTxError] = useState('')
-  const [txStep, setTxStep] = useState('idle')
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
   const [claimable, setClaimable] = useState([])
   const [scanningPrizes, setScanningPrizes] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   const { address, isConnected } = useAccount()
   const { connect, connectors, isPending: isConnecting } = useConnect()
   const { disconnect } = useDisconnect()
   const { writeContractAsync, isPending } = useWriteContract()
+  const chainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
 
   const vaultAddress = addresses.prizeVault || addresses.morphoVault
 
@@ -97,6 +101,11 @@ export default function App() {
     query: { enabled: Boolean(address) },
   })
 
+  const { data: ethBalance } = useBalance({
+    address,
+    query: { enabled: Boolean(address) },
+  })
+
   const { data: vaultShares, refetch: refetchShares } = useReadContract({
     address: vaultAddress,
     abi: erc4626Abi,
@@ -126,7 +135,34 @@ export default function App() {
     abi: erc20Abi,
     functionName: 'allowance',
     args: address && vaultAddress ? [address, vaultAddress] : undefined,
-    query: { enabled: Boolean(address && vaultAddress) },
+    query: {
+      enabled: Boolean(address && vaultAddress),
+      refetchInterval: 4_000,
+    },
+  })
+
+  async function refreshBalances() {
+    await Promise.all([refetchShares(), refetchVaultAssets(), refetchUsdg(), refetchAllowance()])
+  }
+
+  const {
+    txStep,
+    txHash,
+    txError,
+    setTxError,
+    isWalletPending,
+    isConfirming,
+    isBusy,
+    resetTx,
+    startDeposit,
+    startWithdraw,
+  } = useVaultTx({
+    wagmiConfig,
+    address,
+    vaultAddress,
+    usdgAddress: addresses.usdg,
+    refetchAllowance,
+    refreshBalances,
   })
 
   const { data: multiplier } = useReadContract({
@@ -156,7 +192,7 @@ export default function App() {
   }, [twabData])
 
   const needsApproval = useMemo(() => {
-    if (!amount || !allowance) return true
+    if (!amount || allowance === undefined) return false
     try {
       return allowance < parseUnits(amount, 6)
     } catch {
@@ -164,49 +200,31 @@ export default function App() {
     }
   }, [amount, allowance])
 
-  async function waitForReceipt(hash) {
-    await waitForTransactionReceipt(wagmiConfig, { hash })
+  const wrongChain = isConnected && chainId !== robinhoodChain.id
+  const lowGas = ethBalance && ethBalance.value < parseEther('0.00005')
+
+  async function ensureRobinhoodChain() {
+    if (chainId === robinhoodChain.id) return
+    await switchChainAsync({ chainId: robinhoodChain.id })
   }
 
-  async function refreshBalances() {
-    await Promise.all([refetchShares(), refetchVaultAssets(), refetchUsdg(), refetchAllowance()])
+  async function submitContract(params) {
+    return writeContractAsync({ ...params, chainId: robinhoodChain.id })
   }
 
   async function handleDeposit() {
     if (!address || !amount || !usdgBalance) return
     setTxError('')
     try {
-      const assets = parseUnits(amount, 6)
-      if (assets > usdgBalance.value) {
-        setTxError('Insufficient USDG balance')
+      if (wrongChain) {
+        await ensureRobinhoodChain()
+      }
+      if (lowGas) {
+        setTxError('Not enough ETH on Robinhood Chain for gas. Add a small amount of ETH to your wallet.')
         return
       }
-      if (assets === 0n) return
-      if (needsApproval) {
-        setTxStep('approving')
-        const approveHash = await writeContractAsync({
-          address: addresses.usdg,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [vaultAddress, maxUint256],
-        })
-        await waitForReceipt(approveHash)
-        await refetchAllowance()
-      }
-      setTxStep('depositing')
-      const depositHash = await writeContractAsync({
-        address: vaultAddress,
-        abi: erc4626Abi,
-        functionName: 'deposit',
-        args: [assets, address],
-      })
-      await waitForReceipt(depositHash)
-      setAmount('')
-      await refreshBalances()
-      setTxStep('success')
-      setTimeout(() => setTxStep('idle'), 2500)
+      await startDeposit({ amountStr: amount, usdgBalance })
     } catch (err) {
-      setTxStep('idle')
       setTxError(err.shortMessage || err.message || 'Transaction failed')
     }
   }
@@ -215,30 +233,24 @@ export default function App() {
     if (!address) return
     setTxError('')
     try {
-      const max = maxWithdraw || vaultAssetsUser || 0n
-      const assets = withdrawAmount ? parseUnits(withdrawAmount, 6) : max
-      if (assets === 0n) return
-      if (assets > max) {
-        setTxError('Amount exceeds available balance')
+      if (wrongChain) {
+        await ensureRobinhoodChain()
+      }
+      if (lowGas) {
+        setTxError('Not enough ETH on Robinhood Chain for gas.')
         return
       }
-      setTxStep('withdrawing')
-      const hash = await writeContractAsync({
-        address: vaultAddress,
-        abi: erc4626Abi,
-        functionName: 'withdraw',
-        args: [assets, address, address],
-      })
-      await waitForReceipt(hash)
-      setWithdrawAmount('')
-      await refreshBalances()
-      setTxStep('success')
-      setTimeout(() => setTxStep('idle'), 2500)
+      const max = maxWithdraw || vaultAssetsUser || 0n
+      await startWithdraw({ amountStr: withdrawAmount, max })
     } catch (err) {
-      setTxStep('idle')
       setTxError(err.shortMessage || err.message || 'Transaction failed')
     }
   }
+
+  useEffect(() => {
+    if (txStep === 'success' && vaultMode === 'deposit') setAmount('')
+    if (txStep === 'success' && vaultMode === 'withdraw') setWithdrawAmount('')
+  }, [txStep, vaultMode])
 
   async function scanClaimablePrizes() {
     if (!address || !lastAwardedDrawId || lastAwardedDrawId === 0) {
@@ -276,7 +288,7 @@ export default function App() {
   async function handleClaimAll() {
     if (!address || claimable.length === 0) return
     setTxError('')
-    setTxStep('claiming')
+    setClaiming(true)
     try {
       const byTier = claimable.reduce((acc, item) => {
         if (!acc[item.tier]) acc[item.tier] = []
@@ -286,7 +298,7 @@ export default function App() {
 
       for (const [tierStr, indices] of Object.entries(byTier)) {
         const tier = Number(tierStr)
-        const hash = await writeContractAsync({
+        const hash = await submitContract({
           address: addresses.claimer,
           abi: claimerAbi,
           functionName: 'claimPrizes',
@@ -299,15 +311,14 @@ export default function App() {
             0n,
           ],
         })
-        await waitForReceipt(hash)
+        await waitForTx(wagmiConfig, hash)
       }
       await scanClaimablePrizes()
       await refreshBalances()
-      setTxStep('success')
-      setTimeout(() => setTxStep('idle'), 2500)
     } catch (err) {
-      setTxStep('idle')
       setTxError(err.shortMessage || err.message || 'Claim failed')
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -343,147 +354,158 @@ export default function App() {
           </div>
         </nav>
 
-        <header className="hero-panel">
-          <div className="hero-copy">
-            <p className="eyebrow">Save together · Win together</p>
-            <h1>Deposit USDG.<br /><span className="accent">Keep it all. Win more.</span></h1>
-            <p className="hero-desc">
-              Your capital stays withdrawable. Yield and curator fees fuel the HoodPot jackpot — daily on-chain draws.
-            </p>
-          </div>
-          <div className="jackpot-card">
-            <span className="jackpot-label">Prize pool</span>
-            <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
-            <span className="jackpot-sub">USDG accounted in pool</span>
-          </div>
-        </header>
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">Vault TVL</span>
-            <strong>${tvl ? formatUsd(tvl) : '—'}</strong>
-          </div>
-          <div className="stat-card highlight">
-            <span className="stat-label">Next draw</span>
-            <strong>{countdownSec != null ? formatCountdown(countdownSec) : '—'}</strong>
-            <span className="stat-hint">Draw #{openDrawId?.toString() || '—'}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Your position</span>
-            <strong>${formatUsd(position)}</strong>
-            {isConnected && <span className="stat-hint">{formatUsd(walletUsd)} USDG in wallet</span>}
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Your odds (this draw)</span>
-            <strong>{oddsPercent != null ? `${oddsPercent < 0.0001 ? '<0.0001' : oddsPercent.toFixed(4)}%` : '—'}</strong>
-            {multiplier ? <span className="stat-hint">{Number(multiplier) / 10000}× referral boost</span> : null}
-          </div>
-        </div>
-
-        <div className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`tab ${tab === t.id ? 'active' : ''}`}
-              onClick={() => { setTab(t.id); setTxError('') }}
-            >
-              <span className="tab-icon">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="panel">
-          {tab === 'vault' && (
-            <VaultPanel
-              mode={vaultMode}
-              onModeChange={setVaultMode}
-              isConnected={isConnected}
-              onConnect={() => connect({ connector: connectors[0] })}
-              walletBalance={usdgBalance?.value}
-              walletUsd={walletUsd}
-              maxWithdraw={maxWithdraw}
-              depositAmount={amount}
-              onDepositAmountChange={setAmount}
-              withdrawAmount={withdrawAmount}
-              onWithdrawAmountChange={setWithdrawAmount}
-              needsApproval={needsApproval}
-              txStep={txStep}
-              isPending={isPending}
-              onDeposit={handleDeposit}
-              onWithdraw={handleWithdraw}
-              positionUsd={position}
-            />
-          )}
-
-          {tab === 'prizes' && (
-            <div className="panel-inner">
-              <div className="panel-head">
-                <h2>Prizes & claims</h2>
-                <p>
-                  Draw #{lastAwardedDrawId?.toString() || '0'} last awarded.
-                  {lastAwardedDrawId === 0n && ' First draw pending — keep deposited to build TWAB.'}
-                </p>
-              </div>
-
-              {!isConnected ? (
-                <div className="connect-prompt">
-                  <p>Connect wallet to scan for claimable prizes.</p>
-                </div>
-              ) : scanningPrizes ? (
-                <p className="muted">Scanning on-chain for wins…</p>
-              ) : claimable.length > 0 ? (
-                <>
-                  <div className="prize-wins">
-                    {claimable.map((c) => (
-                      <div key={`${c.tier}-${c.prizeIndex}`} className="prize-win-card">
-                        <span className="prize-tier">{TIER_LABELS[c.tier] || `Tier ${c.tier}`}</span>
-                        <strong>Prize #{c.prizeIndex + 1}</strong>
-                        <span className="muted">Draw #{lastAwardedDrawId?.toString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    className="btn btn-primary btn-lg btn-full"
-                    type="button"
-                    disabled={isPending}
-                    onClick={handleClaimAll}
-                  >
-                    {txStep === 'claiming' ? 'Claiming…' : `Claim ${claimable.length} prize${claimable.length > 1 ? 's' : ''}`}
-                  </button>
-                </>
-              ) : (
-                <div className="empty-prizes">
-                  <div className="empty-icon">★</div>
-                  <p><strong>No claimable prizes right now.</strong></p>
-                  <p className="muted">Stay deposited to grow TWAB. Winners are selected after each daily draw.</p>
-                  <button type="button" className="btn btn-ghost" onClick={scanClaimablePrizes}>Refresh</button>
-                </div>
-              )}
+        <div className="dashboard">
+          <aside className="dashboard-side">
+            <div className="side-header">
+              <p className="eyebrow">Save together · Win together</p>
+              <h1 className="side-title">
+                HoodPot <span className="accent">no-loss lottery</span>
+              </h1>
             </div>
-          )}
 
-          {txError && <div className="error-banner">{txError}</div>}
+            <div className="tabs tabs-side">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`tab ${tab === t.id ? 'active' : ''}`}
+                  onClick={() => { setTab(t.id); setTxError('') }}
+                >
+                  <span className="tab-icon">{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'vault' ? (
+              <div className="side-stack">
+                <div className="jackpot-card jackpot-compact">
+                  <span className="jackpot-label">Prize pool</span>
+                  <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
+                  <span className="jackpot-sub">USDG · daily draws</span>
+                </div>
+
+                <div className="stats-grid stats-compact">
+                  <div className="stat-card">
+                    <span className="stat-label">Vault TVL</span>
+                    <strong>${tvl ? formatUsd(tvl) : '—'}</strong>
+                  </div>
+                  <div className="stat-card highlight">
+                    <span className="stat-label">Next draw</span>
+                    <strong>{countdownSec != null ? formatCountdown(countdownSec) : '—'}</strong>
+                    <span className="stat-hint">#{openDrawId?.toString() || '—'}</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Your position</span>
+                    <strong>${formatUsd(position)}</strong>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Your odds</span>
+                    <strong>{oddsPercent != null ? `${oddsPercent < 0.0001 ? '<0.0001' : oddsPercent.toFixed(4)}%` : '—'}</strong>
+                    {isConnected && <span className="stat-hint">{formatUsd(walletUsd)} wallet</span>}
+                  </div>
+                </div>
+
+                <div className="info-grid info-compact">
+                  <div className="info-card">
+                    <h3>TWAB odds</h3>
+                    <p>Longer deposits + larger balance = better chance each draw.</p>
+                  </div>
+                  <div className="info-card">
+                    <h3>$HOOD tiers</h3>
+                    <p>{TIER_NAMES.join(' → ')} — referral boosts at launch.</p>
+                  </div>
+                </div>
+
+                <div className="contracts-strip contracts-compact">
+                  <a href={explorerAddress(vaultAddress)} target="_blank" rel="noreferrer">Vault {shortenAddress(vaultAddress)}</a>
+                  <a href={explorerAddress(addresses.prizePool)} target="_blank" rel="noreferrer">Pool {shortenAddress(addresses.prizePool)}</a>
+                </div>
+              </div>
+            ) : (
+              <div className="side-stack panel prizes-side">
+                <div className="panel-head">
+                  <h2>Prizes & claims</h2>
+                  <p>
+                    Draw #{lastAwardedDrawId?.toString() || '0'} last awarded.
+                    {lastAwardedDrawId === 0n && ' First draw pending.'}
+                  </p>
+                </div>
+
+                {!isConnected ? (
+                  <div className="connect-prompt connect-compact">
+                    <p>Connect wallet to scan for wins.</p>
+                  </div>
+                ) : scanningPrizes ? (
+                  <p className="muted">Scanning on-chain…</p>
+                ) : claimable.length > 0 ? (
+                  <>
+                    <div className="prize-wins">
+                      {claimable.map((c) => (
+                        <div key={`${c.tier}-${c.prizeIndex}`} className="prize-win-card">
+                          <span className="prize-tier">{TIER_LABELS[c.tier] || `Tier ${c.tier}`}</span>
+                          <strong>Prize #{c.prizeIndex + 1}</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      className="btn btn-primary btn-full"
+                      type="button"
+                      disabled={claiming || isBusy}
+                      onClick={handleClaimAll}
+                    >
+                      {claiming ? 'Claiming…' : `Claim ${claimable.length} prize${claimable.length > 1 ? 's' : ''}`}
+                    </button>
+                  </>
+                ) : (
+                  <div className="empty-prizes empty-compact">
+                    <p><strong>No prizes to claim.</strong></p>
+                    <p className="muted">Keep deposited to build TWAB before the next draw.</p>
+                    <button type="button" className="btn btn-ghost" onClick={scanClaimablePrizes}>Refresh</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
+
+          <main className="dashboard-action">
+            <div className="action-card panel">
+              <div className="action-card-head">
+                <h2>Deposit & withdraw</h2>
+                <p>USDG into HoodPot — capital always withdrawable.</p>
+              </div>
+              <VaultPanel
+                mode={vaultMode}
+                onModeChange={(m) => { setVaultMode(m); resetTx() }}
+                isConnected={isConnected}
+                wrongChain={wrongChain}
+                lowGas={lowGas}
+                onConnect={() => connect({ connector: connectors[0] })}
+                walletBalance={usdgBalance?.value}
+                walletUsd={walletUsd}
+                maxWithdraw={maxWithdraw}
+                depositAmount={amount}
+                onDepositAmountChange={setAmount}
+                withdrawAmount={withdrawAmount}
+                onWithdrawAmountChange={setWithdrawAmount}
+                needsApproval={needsApproval}
+                allowanceLoading={allowance === undefined}
+                txStep={txStep}
+                txHash={txHash}
+                isWalletPending={isWalletPending}
+                isConfirming={isConfirming}
+                isBusy={isBusy}
+                onDeposit={handleDeposit}
+                onWithdraw={handleWithdraw}
+                onResetTx={resetTx}
+                positionUsd={position}
+                txError={txError}
+              />
+            </div>
+          </main>
         </div>
 
-        <div className="info-grid">
-          <div className="info-card">
-            <h3>How odds work</h3>
-            <p>Time-weighted balance (TWAB) — longer deposits and larger balances improve your chance each draw.</p>
-          </div>
-          <div className="info-card">
-            <h3>$HOOD tiers</h3>
-            <p>{TIER_NAMES.join(' → ')} unlock referral boosts and early access when $HOOD launches on Virtuals.</p>
-          </div>
-        </div>
-
-        <div className="contracts-strip">
-          <a href={explorerAddress(vaultAddress)} target="_blank" rel="noreferrer">PrizeVault {shortenAddress(vaultAddress)}</a>
-          <a href={explorerAddress(addresses.prizePool)} target="_blank" rel="noreferrer">PrizePool {shortenAddress(addresses.prizePool)}</a>
-        </div>
-
-        <footer className="footer">
+        <footer className="footer footer-compact">
           <a href={links.telegram} target="_blank" rel="noreferrer">Telegram</a>
           <a href={links.docs} target="_blank" rel="noreferrer">Docs</a>
           <a href={links.github} target="_blank" rel="noreferrer">GitHub</a>

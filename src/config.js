@@ -35,6 +35,9 @@ export const links = {
   telegram: 'https://t.me/+8KdjgSVzZr5hZjc0',
 }
 
+export const subgraphUrl =
+  'https://api.goldsky.com/api/public/project_cmmaz8bs32rjv01u29b8y8vuf/subgraphs/hoodbet/1.0.0/gn'
+
 export const wagmiConfig = createConfig({
   chains: [robinhoodChain],
   connectors: [injected()],

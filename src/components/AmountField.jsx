@@ -1,7 +1,16 @@
-import { formatUnits } from 'viem'
-import { formatUsd } from '../format.js'
+import { formatUnits, parseUnits } from 'viem'
+import { formatUsd, formatUsdg } from '../format.js'
 
 const PERCENTS = [25, 50, 75, 100]
+
+function parseAmountUnits(value, decimals) {
+  if (!value) return null
+  try {
+    return parseUnits(value, decimals)
+  } catch {
+    return null
+  }
+}
 
 export function AmountField({
   id,
@@ -17,7 +26,7 @@ export function AmountField({
   hint,
 }) {
   const maxStr = maxBalance != null ? formatUnits(maxBalance, decimals) : '0'
-  const maxNum = Number(maxStr)
+  const displayBalance = maxBalance != null ? formatUsdg(maxStr) : '0'
 
   function setPercent(percent) {
     if (!maxBalance || maxBalance === 0n) return
@@ -30,9 +39,9 @@ export function AmountField({
     onChange(maxStr)
   }
 
-  const entered = value ? Number(value) : 0
-  const exceeds = value && maxNum > 0 && entered > maxNum + 1e-9
-  const displayError = error || (exceeds ? `Max ${formatUsd(maxStr)} ${token}` : '')
+  const enteredUnits = parseAmountUnits(value, decimals)
+  const exceeds = enteredUnits != null && maxBalance != null && enteredUnits > maxBalance
+  const displayError = error || (exceeds ? `Max ${displayBalance} ${token}` : '')
 
   return (
     <div className={`amount-field ${displayError ? 'has-error' : ''}`}>
@@ -44,7 +53,7 @@ export function AmountField({
           onClick={setMax}
           disabled={disabled || !maxBalance || maxBalance === 0n}
         >
-          Balance: <strong>{formatUsd(maxStr)}</strong> {token}
+          Balance: <strong>{displayBalance}</strong> {token}
         </button>
       </div>
 
