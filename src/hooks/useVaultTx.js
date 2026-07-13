@@ -226,6 +226,15 @@ export function useVaultTx({
       setTxStep('withdrawing')
 
       try {
+        await simulateContract(wagmiConfig, {
+          address: vaultAddress,
+          abi: erc4626Abi,
+          functionName: 'withdraw',
+          args: [assets, address, address],
+          account: address,
+          chainId: robinhoodChain.id,
+        })
+
         const hash = await submit({
           address: vaultAddress,
           abi: erc4626Abi,
@@ -238,7 +247,7 @@ export function useVaultTx({
         setTxError(txMessage(err))
       }
     },
-    [address, vaultAddress, submit, resetTx],
+    [address, vaultAddress, wagmiConfig, submit, resetTx],
   )
 
   const isBusy = isWalletPending || isConfirming || ['approving', 'depositing', 'withdrawing'].includes(txStep)

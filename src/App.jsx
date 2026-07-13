@@ -211,6 +211,13 @@ export default function App() {
   const position = vaultAssetsUser ? formatUnits(vaultAssetsUser, 6) : '0'
   const walletUsd = usdgBalance ? formatUnits(usdgBalance.value, usdgBalance.decimals) : '0'
 
+  // Morpho-backed PrizeVault often reports maxWithdraw=0; use convertToAssets fallback.
+  const withdrawableMax = useMemo(() => {
+    if (maxWithdraw && maxWithdraw > 0n) return maxWithdraw
+    if (vaultAssetsUser && vaultAssetsUser > 0n) return vaultAssetsUser
+    return 0n
+  }, [maxWithdraw, vaultAssetsUser])
+
   const oddsPercent = useMemo(() => {
     if (!twabData) return null
     const [twab, total] = twabData
@@ -307,7 +314,7 @@ export default function App() {
         setTxError('Not enough ETH on Robinhood Chain for gas.')
         return
       }
-      const max = maxWithdraw || vaultAssetsUser || 0n
+      const max = withdrawableMax
       await startWithdraw({ amountStr: withdrawAmount, max })
     } catch (err) {
       const msg = err?.shortMessage || err?.message || 'Transaction failed'
@@ -554,7 +561,7 @@ export default function App() {
                 onConnect={() => connect({ connector: connectors[0] })}
                 walletBalance={usdgBalance?.value}
                 walletUsd={walletUsd}
-                maxWithdraw={maxWithdraw}
+                maxWithdraw={withdrawableMax}
                 depositAmount={amount}
                 onDepositAmountChange={setAmount}
                 withdrawAmount={withdrawAmount}
