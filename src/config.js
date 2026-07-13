@@ -20,7 +20,7 @@ export const addresses = {
   safe: '0x5FF989aCB81e612fb54d2BDE9C6334B4C9a8f117',
   hoodRng: '0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19',
   prizePool: '0x14e5004a757a85439fc379c8acd5b3b3cdf47344',
-  prizeVault: '0x318b89c2b407f091adcbc02854dd3f96e3470e17',
+  prizeVault: '0x11da9bE66d20328c6eA16d52079890322fA90f24',
   drawManager: '0xd1c3d3b690c9a2033b0bea03ba0771847fd983eb',
   twabController: '0x534eb000af980efe5dc8f7b1b579c3c4baf87942',
   hoodFeeHarvester: '0x7FB9C432e78101a6bB59e681458888acaA3db532',

@@ -232,7 +232,7 @@ export default function App() {
     query: { enabled: Boolean(address) },
   })
 
-  const vaultDepositBlocked = yieldBuffer === 0n || maxDeposit === 0n
+  const vaultDepositBlocked = yieldBuffer === 0n
 
   const needsApproval = useMemo(() => {
     if (!amount || allowance === undefined) return false

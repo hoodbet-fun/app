@@ -158,12 +158,8 @@ export function useVaultTx({
           return
         }
 
-        if (maxDeposit === 0n || assets > maxDeposit) {
-          setTxError(
-            maxDeposit === 0n
-              ? VAULT_YIELD_BUFFER_ERROR
-              : `Amount exceeds vault max deposit.`,
-          )
+        if (maxDeposit > 0n && assets > maxDeposit) {
+          setTxError('Amount exceeds vault max deposit.')
           return
         }
 
