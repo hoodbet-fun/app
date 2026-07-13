@@ -75,6 +75,7 @@ export default function App() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <a className="nav-link" href={links.docs} target="_blank" rel="noreferrer">Docs</a>
+            <a className="nav-link" href={links.telegram} target="_blank" rel="noreferrer">Telegram</a>
             <a className="nav-link" href={links.landing} target="_blank" rel="noreferrer">hoodbet.fun</a>
             {isConnected && address && <TierBadge address={address} />}
             {isConnected ? (
@@ -175,6 +176,7 @@ export default function App() {
         </div>
 
         <footer className="footer">
+          <a href={links.telegram} target="_blank" rel="noreferrer">Telegram</a>
           <a href={links.docs} target="_blank" rel="noreferrer">Docs</a>
           <a href={links.github} target="_blank" rel="noreferrer">GitHub</a>
           <a href={links.landing} target="_blank" rel="noreferrer">hoodbet.fun</a>

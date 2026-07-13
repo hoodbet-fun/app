@@ -26,6 +26,7 @@ export const links = {
   docs: 'https://hoodbet.gitbook.io/hoodbet-docs',
   landing: 'https://hoodbet.fun',
   github: 'https://github.com/hoodbet-fun',
+  telegram: 'https://t.me/+8KdjgSVzZr5hZjc0',
 }
 
 export const wagmiConfig = createConfig({
