@@ -103,7 +103,6 @@ export default function App() {
   const { writeContractAsync, isPending } = useWriteContract()
 
   const vaultAddress = addresses.prizeVault || addresses.morphoVault
-  const lotteryPending = !addresses.prizeVault
 
   const { data: vaultAssets } = useReadContract({
     address: addresses.morphoVault,
@@ -250,14 +249,6 @@ export default function App() {
             </div>
           )}
         </div>
-
-        {lotteryPending && (
-          <div className="card" style={{ borderColor: 'rgba(255,215,0,0.35)' }}>
-            <p style={{ margin: 0, color: 'var(--gold)' }}>
-              PrizeVault + daily draws deploying next. You can deposit real USDG into the Morpho vault now; lottery odds activate after PT V5 deploy.
-            </p>
-          </div>
-        )}
 
         <div className="tabs">
           {TABS.map((t) => (
