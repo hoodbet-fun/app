@@ -17,6 +17,7 @@ export const addresses = {
   morphoVault: '0xDF06045aBAE69d6e73a7F0197FED917032d22194',
   usdg: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
   safe: '0x5FF989aCB81e612fb54d2BDE9C6334B4C9a8f117',
+  hoodRng: '0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19',
   prizeVault: import.meta.env.VITE_PRIZE_VAULT || '',
   hoodPoints: import.meta.env.VITE_HOOD_POINTS || '',
   hoodToken: import.meta.env.VITE_HOOD_TOKEN || '',
