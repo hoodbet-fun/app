@@ -1,5 +1,14 @@
-export const VAULT_YIELD_BUFFER_ERROR =
-  'Deposits are blocked: HoodPot PrizeVault was deployed without a yield buffer. A new vault must be deployed via Safe with at least 1 USDG buffer seed.'
+export const VAULT_DEPOSIT_BLOCKED = {
+  title: 'Deposits temporarily paused',
+  description:
+    'This PrizeVault was deployed without a yield buffer, so new deposits are disabled on-chain. Governance must deploy a replacement vault via Safe with at least 1 USDG buffer seed.',
+  docsLabel: 'Redeploy guide',
+  docsHref: 'https://hoodbet.gitbook.io/hoodbet-docs',
+  safeLabel: 'Open Safe',
+  safeHref: 'https://app.safe.global/home?safe=robinhood:0x5FF989aCB81e612fb54d2BDE9C6334B4C9a8f117',
+}
+
+export const VAULT_YIELD_BUFFER_ERROR = VAULT_DEPOSIT_BLOCKED.description
 
 export function parseDepositError(err) {
   const msg = err?.shortMessage || err?.message || err?.cause?.message || 'Transaction failed'

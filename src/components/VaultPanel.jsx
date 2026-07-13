@@ -1,5 +1,6 @@
 import { parseUnits } from 'viem'
 import { AmountField } from './AmountField.jsx'
+import { VAULT_DEPOSIT_BLOCKED } from '../deposit.js'
 import { formatUsd } from '../format.js'
 import { txExplorerUrl } from '../tx.js'
 
@@ -23,7 +24,6 @@ export function VaultPanel({
   switchingChain,
   onSwitchChain,
   vaultDepositBlocked,
-  vaultBlockedMessage,
   lowGas,
   onConnect,
   walletBalance,
@@ -47,6 +47,7 @@ export function VaultPanel({
   txError,
 }) {
   const isDeposit = mode === 'deposit'
+  const depositPaused = isDeposit && vaultDepositBlocked
 
   const depositUnits = parseAmount(depositAmount)
   const depositExceeds = depositUnits != null && walletBalance != null && depositUnits > walletBalance
@@ -55,7 +56,8 @@ export function VaultPanel({
   const withdrawExceeds = withdrawUnits != null && maxWithdraw != null && withdrawUnits > maxWithdraw
 
   let depositLabel = 'Deposit'
-  if (txStep === 'approving' && isWalletPending) depositLabel = 'Confirm in wallet…'
+  if (depositPaused) depositLabel = 'Deposits paused'
+  else if (txStep === 'approving' && isWalletPending) depositLabel = 'Confirm in wallet…'
   else if (txStep === 'approving' && isConfirming) depositLabel = 'Approving…'
   else if (txStep === 'depositing' && isWalletPending) depositLabel = 'Confirm in wallet…'
   else if (txStep === 'depositing' && isConfirming) depositLabel = 'Depositing…'
@@ -68,70 +70,99 @@ export function VaultPanel({
   else if (txStep === 'withdrawing' && isConfirming) withdrawLabel = 'Confirming…'
   else if (txStep === 'success' && !isDeposit) withdrawLabel = 'Done ✓'
 
-  const canDeposit = depositAmount && !depositExceeds && !isBusy && txStep !== 'success' && !wrongChain && !lowGas && !vaultDepositBlocked
+  const canDeposit = !depositPaused && depositAmount && !depositExceeds && !isBusy && txStep !== 'success' && !wrongChain && !lowGas
   const canWithdraw = maxWithdraw && maxWithdraw > 0n && !withdrawExceeds && !isBusy && !wrongChain && !lowGas
 
   const statusLine = isWalletPending
     ? 'Confirm in your wallet'
     : isConfirming && txHash
       ? 'Confirming on-chain…'
-      : txError
-        ? null
-        : null
+      : null
+
+  const formDisabled = isBusy || depositPaused
 
   return (
     <div className="vault-panel">
       <div className="vault-panel-top">
-        <div className="vault-mode-toggle vault-mode-compact">
+        <div className="vault-segment" role="tablist" aria-label="Vault action">
           <button
             type="button"
-            className={`vault-mode ${isDeposit ? 'active deposit' : ''}`}
+            role="tab"
+            aria-selected={isDeposit}
+            className={`vault-segment-btn ${isDeposit ? 'active deposit' : ''}`}
             onClick={() => onModeChange('deposit')}
             disabled={isBusy}
           >
-            ↓ Deposit
+            <span className="vault-segment-icon" aria-hidden>↓</span>
+            Deposit
           </button>
           <button
             type="button"
-            className={`vault-mode ${!isDeposit ? 'active withdraw' : ''}`}
+            role="tab"
+            aria-selected={!isDeposit}
+            className={`vault-segment-btn ${!isDeposit ? 'active withdraw' : ''}`}
             onClick={() => onModeChange('withdraw')}
             disabled={isBusy}
           >
-            ↑ Withdraw
+            <span className="vault-segment-icon" aria-hidden>↑</span>
+            Withdraw
           </button>
         </div>
-        <div className="position-row">
-          <span>Position <strong>${formatUsd(positionUsd)}</strong></span>
+
+        <div className="vault-stats">
+          <div className="vault-stat vault-stat-primary">
+            <span className="vault-stat-label">Position</span>
+            <strong className="vault-stat-value">${formatUsd(positionUsd)}</strong>
+          </div>
           {isConnected && (
-            <span>Wallet <strong>${formatUsd(walletUsd)}</strong></span>
+            <div className="vault-stat">
+              <span className="vault-stat-label">Wallet</span>
+              <strong className="vault-stat-value">${formatUsd(walletUsd)}</strong>
+            </div>
           )}
         </div>
       </div>
 
       <div className="vault-panel-body">
-        {(wrongChain || lowGas || vaultDepositBlocked) && (
+        {depositPaused && (
+          <div className="vault-alert vault-alert-critical" role="alert">
+            <div className="vault-alert-copy">
+              <strong>{VAULT_DEPOSIT_BLOCKED.title}</strong>
+              <p>{VAULT_DEPOSIT_BLOCKED.description}</p>
+              <div className="vault-alert-actions">
+                <a href={VAULT_DEPOSIT_BLOCKED.docsHref} target="_blank" rel="noreferrer">
+                  {VAULT_DEPOSIT_BLOCKED.docsLabel} →
+                </a>
+                <a href={VAULT_DEPOSIT_BLOCKED.safeHref} target="_blank" rel="noreferrer">
+                  {VAULT_DEPOSIT_BLOCKED.safeLabel} →
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!depositPaused && (wrongChain || lowGas) && (
           <div className="vault-alerts">
-            {wrongChain && <p className="warn-banner-compact">{chainMessage}</p>}
-            {vaultDepositBlocked && !wrongChain && (
-              <p className="warn-banner-compact vault-blocked">{vaultBlockedMessage}</p>
-            )}
-            {lowGas && !wrongChain && !vaultDepositBlocked && (
-              <p className="warn-inline">Need ETH for gas on Robinhood Chain</p>
+            {wrongChain && <p className="vault-alert vault-alert-warn">{chainMessage}</p>}
+            {lowGas && !wrongChain && (
+              <p className="vault-alert vault-alert-warn">Need ETH for gas on Robinhood Chain.</p>
             )}
           </div>
         )}
 
-        <div className="vault-panel-main">
+        <div className={`vault-panel-main ${depositPaused ? 'is-paused' : ''}`}>
           {!isConnected ? (
-            <div className="connect-compact-vault">
-              <p>Connect wallet on Robinhood Chain</p>
+            <div className="vault-empty-state">
+              <p className="vault-empty-title">Connect your wallet</p>
+              <p className="vault-empty-text">Use Robinhood Chain to deposit USDG into HoodPot.</p>
               <button className="btn btn-primary btn-full" type="button" onClick={onConnect}>
                 Connect wallet
               </button>
             </div>
           ) : wrongChain ? (
-            <div className="connect-compact-vault">
-              <p>Deposits only work on <strong>Robinhood Chain (4663)</strong>.</p>
+            <div className="vault-empty-state">
+              <p className="vault-empty-title">Wrong network</p>
+              <p className="vault-empty-text">Deposits only work on <strong>Robinhood Chain (4663)</strong>.</p>
               <button
                 className="btn btn-primary btn-full"
                 type="button"
@@ -149,22 +180,24 @@ export function VaultPanel({
                 value={depositAmount}
                 onChange={onDepositAmountChange}
                 maxBalance={walletBalance}
-                disabled={isBusy}
+                disabled={formDisabled}
                 compact
                 error={depositExceeds ? 'Insufficient balance' : null}
                 hint={
-                  allowanceLoading
-                    ? 'Loading…'
-                    : needsApproval && depositAmount && !depositExceeds
-                      ? 'Approve once, then auto-deposit.'
-                      : null
+                  depositPaused
+                    ? null
+                    : allowanceLoading
+                      ? 'Loading allowance…'
+                      : needsApproval && depositAmount && !depositExceeds
+                        ? 'One-time USDG approval, then deposit runs automatically.'
+                        : 'No lock-up · withdraw anytime'
                 }
               />
 
               {BUSY_STEPS.has(txStep) && (
                 <div className="tx-steps tx-steps-compact">
                   <div className={`tx-step ${txStep === 'approving' ? 'active' : txStep === 'depositing' || txStep === 'success' ? 'done' : ''}`}>
-                    <span>1</span> Approve
+                    <span>1</span> Approve USDG
                   </div>
                   <div className={`tx-step ${txStep === 'depositing' ? 'active' : txStep === 'success' ? 'done' : ''}`}>
                     <span>2</span> Deposit
@@ -175,7 +208,7 @@ export function VaultPanel({
               {statusLine && <p className="vault-status">{statusLine}</p>}
               {txHash && (
                 <a className="tx-link-inline" href={txExplorerUrl(txHash)} target="_blank" rel="noreferrer">
-                  Blockscout →
+                  View on Blockscout →
                 </a>
               )}
               {txError && <div className="error-banner error-inline">{txError}</div>}
@@ -190,14 +223,14 @@ export function VaultPanel({
                 maxBalance={maxWithdraw || 0n}
                 disabled={isBusy || !maxWithdraw || maxWithdraw === 0n}
                 compact
-                error={withdrawExceeds ? 'Exceeds balance' : null}
-                hint="No lock-up · exit lowers TWAB"
+                error={withdrawExceeds ? 'Exceeds vault balance' : null}
+                hint="No lock-up · withdrawing lowers your TWAB odds"
               />
 
               {statusLine && <p className="vault-status">{statusLine}</p>}
               {txHash && (
                 <a className="tx-link-inline" href={txExplorerUrl(txHash)} target="_blank" rel="noreferrer">
-                  Blockscout →
+                  View on Blockscout →
                 </a>
               )}
               {txError && <div className="error-banner error-inline">{txError}</div>}
@@ -210,7 +243,7 @@ export function VaultPanel({
             {isDeposit ? (
               <>
                 <button
-                  className="btn btn-primary btn-full"
+                  className={`btn btn-primary btn-full ${depositPaused ? 'btn-disabled-look' : ''}`}
                   type="button"
                   disabled={!canDeposit}
                   onClick={onDeposit}

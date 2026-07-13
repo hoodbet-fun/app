@@ -19,8 +19,6 @@ import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
-import { VAULT_YIELD_BUFFER_ERROR } from './deposit.js'
-
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
 const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
 const TABS = [
@@ -551,7 +549,6 @@ export default function App() {
                 chainMessage={chainMessage}
                 switchingChain={switchingChain}
                 vaultDepositBlocked={vaultDepositBlocked}
-                vaultBlockedMessage={VAULT_YIELD_BUFFER_ERROR}
                 onSwitchChain={handleSwitchChain}
                 lowGas={lowGas}
                 onConnect={() => connect({ connector: connectors[0] })}

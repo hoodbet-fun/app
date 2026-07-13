@@ -1,7 +1,7 @@
 import { formatUnits, parseUnits } from 'viem'
 import { formatUsd, formatUsdg } from '../format.js'
 
-const PERCENTS = [25, 50, 75, 100]
+const PERCENTS = [25, 50, 75]
 
 function parseAmountUnits(value, decimals) {
   if (!value) return null
@@ -45,7 +45,7 @@ export function AmountField({
   const displayError = error || (exceeds ? `Max ${displayBalance} ${token}` : '')
 
   return (
-    <div className={`amount-field ${compact ? 'amount-field-compact' : ''} ${displayError ? 'has-error' : ''}`}>
+    <div className={`amount-field ${compact ? 'amount-field-compact' : ''} ${displayError ? 'has-error' : ''} ${disabled ? 'is-disabled' : ''}`}>
       <div className="amount-field-header">
         <label className="field-label" htmlFor={id}>{label}</label>
         <button
@@ -53,13 +53,14 @@ export function AmountField({
           className="balance-pill"
           onClick={setMax}
           disabled={disabled || !maxBalance || maxBalance === 0n}
+          title={`Use full balance (${displayBalance} ${token})`}
         >
-          Balance: <strong>{displayBalance}</strong> {token}
+          Available <strong>{displayBalance}</strong> {token}
         </button>
       </div>
 
       <div className={`amount-input-wrap ${disabled ? 'disabled' : ''}`}>
-        <span className="input-prefix">$</span>
+        <span className="input-prefix" aria-hidden>$</span>
         <input
           id={id}
           type="text"
@@ -68,25 +69,38 @@ export function AmountField({
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+          aria-invalid={Boolean(displayError)}
         />
-        <button type="button" className="btn-max" onClick={setMax} disabled={disabled || !maxBalance}>
-          MAX
+        <button
+          type="button"
+          className="btn-max"
+          onClick={setMax}
+          disabled={disabled || !maxBalance || maxBalance === 0n}
+        >
+          Max
         </button>
-        <span className="token-tag">{token}</span>
       </div>
 
-      <div className="percent-row">
+      <div className="percent-row" role="group" aria-label="Quick amount">
         {PERCENTS.map((p) => (
           <button
             key={p}
             type="button"
             className="chip chip-percent"
-            disabled={disabled || !maxBalance}
+            disabled={disabled || !maxBalance || maxBalance === 0n}
             onClick={() => setPercent(p)}
           >
-            {p === 100 ? 'MAX' : `${p}%`}
+            {p}%
           </button>
         ))}
+        <button
+          type="button"
+          className="chip chip-percent chip-max"
+          disabled={disabled || !maxBalance || maxBalance === 0n}
+          onClick={setMax}
+        >
+          Max
+        </button>
       </div>
 
       {quickAmounts?.length > 0 && !compact && (
@@ -107,7 +121,7 @@ export function AmountField({
       )}
 
       {hint && !displayError && <p className="field-hint">{hint}</p>}
-      {displayError && <p className="field-error">{displayError}</p>}
+      {displayError && <p className="field-error" role="alert">{displayError}</p>}
     </div>
   )
 }
