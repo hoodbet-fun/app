@@ -55,6 +55,41 @@ export function useVaultTx({
     [writeContractAsync],
   )
 
+  const readAllowance = useCallback(
+    () =>
+      readContract(wagmiConfig, {
+        address: usdgAddress,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [address, vaultAddress],
+      }),
+    [address, usdgAddress, vaultAddress, wagmiConfig],
+  )
+
+  const submitDeposit = useCallback(
+    async (assets) => {
+      await simulateContract(wagmiConfig, {
+        address: vaultAddress,
+        abi: erc4626Abi,
+        functionName: 'deposit',
+        args: [assets, address],
+        account: address,
+        chainId: robinhoodChain.id,
+      })
+
+      flowRef.current = 'deposit'
+      setTxStep('depositing')
+      const hash = await submit({
+        address: vaultAddress,
+        abi: erc4626Abi,
+        functionName: 'deposit',
+        args: [assets, address],
+      })
+      setTxHash(hash)
+    },
+    [address, vaultAddress, wagmiConfig, submit],
+  )
+
   useEffect(() => {
     if (!isError || !receiptError) return
     setTxError(txMessage(receiptError))
@@ -74,17 +109,22 @@ export function useVaultTx({
     async function onConfirmed() {
       if (flow === 'approve') {
         await refetchAllowance()
-        flowRef.current = 'deposit'
-        setTxStep('depositing')
+        let allowance = await readAllowance()
+        for (let i = 0; i < 4 && allowance < depositAssetsRef.current; i += 1) {
+          await new Promise((r) => setTimeout(r, 1500))
+          await refetchAllowance()
+          allowance = await readAllowance()
+        }
+
+        if (allowance < depositAssetsRef.current) {
+          resetTx()
+          setTxError('USDG approval confirmed but allowance not visible yet. Try deposit again.')
+          return
+        }
+
         try {
-          const hash = await submit({
-            address: vaultAddress,
-            abi: erc4626Abi,
-            functionName: 'deposit',
-            args: [depositAssetsRef.current, address],
-          })
           processedHashRef.current = null
-          setTxHash(hash)
+          await submitDeposit(depositAssetsRef.current)
         } catch (err) {
           resetTx()
           setTxError(txMessage(err))
@@ -114,7 +154,7 @@ export function useVaultTx({
     }
 
     onConfirmed()
-  }, [isSuccess, txHash, address, vaultAddress, refetchAllowance, refreshBalances, resetTx, submit])
+  }, [isSuccess, txHash, refetchAllowance, readAllowance, refreshBalances, resetTx, submitDeposit])
 
   const startDeposit = useCallback(
     async ({ amountStr, usdgBalance }) => {
@@ -163,21 +203,7 @@ export function useVaultTx({
           return
         }
 
-        await simulateContract(wagmiConfig, {
-          address: vaultAddress,
-          abi: erc4626Abi,
-          functionName: 'deposit',
-          args: [assets, address],
-          account: address,
-          chainId: robinhoodChain.id,
-        })
-
-        const freshAllowance = await readContract(wagmiConfig, {
-          address: usdgAddress,
-          abi: erc20Abi,
-          functionName: 'allowance',
-          args: [address, vaultAddress],
-        })
+        const freshAllowance = await readAllowance()
 
         if (freshAllowance < assets) {
           flowRef.current = 'approve'
@@ -192,21 +218,13 @@ export function useVaultTx({
           return
         }
 
-        flowRef.current = 'deposit'
-        setTxStep('depositing')
-        const hash = await submit({
-          address: vaultAddress,
-          abi: erc4626Abi,
-          functionName: 'deposit',
-          args: [assets, address],
-        })
-        setTxHash(hash)
+        await submitDeposit(assets)
       } catch (err) {
         resetTx()
         setTxError(txMessage(err))
       }
     },
-    [address, usdgAddress, vaultAddress, wagmiConfig, submit, resetTx],
+    [address, usdgAddress, vaultAddress, wagmiConfig, submit, resetTx, readAllowance, submitDeposit],
   )
 
   const startWithdraw = useCallback(

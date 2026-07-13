@@ -14,6 +14,9 @@ export function parseDepositError(err) {
   const msg = err?.shortMessage || err?.message || err?.cause?.message || 'Transaction failed'
   if (/rejected|denied|cancel/i.test(msg)) return 'Transaction cancelled in wallet.'
   if (/LossyDeposit|0x2b8b305a/i.test(msg)) return VAULT_YIELD_BUFFER_ERROR
+  if (/InsufficientAllowance|0x13be252b/i.test(msg)) {
+    return 'USDG approval required. Click Deposit again to approve, then the deposit will run automatically.'
+  }
   if (/chain.*does not match|wrong network/i.test(msg)) return msg
   return msg
 }
