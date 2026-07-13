@@ -18,6 +18,7 @@ import { VaultPanel } from './components/VaultPanel.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { waitForTx } from './tx.js'
+import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
 
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
 const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
@@ -46,8 +47,10 @@ export default function App() {
   const [claimable, setClaimable] = useState([])
   const [scanningPrizes, setScanningPrizes] = useState(false)
   const [claiming, setClaiming] = useState(false)
+  const [switchingChain, setSwitchingChain] = useState(false)
+  const [walletChainId, setWalletChainId] = useState(null)
 
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, chainId: accountChainId } = useAccount()
   const { connect, connectors, isPending: isConnecting } = useConnect()
   const { disconnect } = useDisconnect()
   const { writeContractAsync, isPending } = useWriteContract()
@@ -99,11 +102,13 @@ export default function App() {
   const { data: usdgBalance, refetch: refetchUsdg } = useBalance({
     address,
     token: addresses.usdg,
+    chainId: robinhoodChain.id,
     query: { enabled: Boolean(address) },
   })
 
   const { data: ethBalance } = useBalance({
     address,
+    chainId: robinhoodChain.id,
     query: { enabled: Boolean(address) },
   })
 
@@ -179,6 +184,28 @@ export default function App() {
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    if (!isConnected || typeof window === 'undefined' || !window.ethereum) {
+      setWalletChainId(null)
+      return
+    }
+
+    let cancelled = false
+    getWalletChainId()
+      .then((id) => { if (!cancelled) setWalletChainId(id) })
+      .catch(() => {})
+
+    const onChainChanged = (hex) => setWalletChainId(Number(hex))
+    window.ethereum.on('chainChanged', onChainChanged)
+    return () => {
+      cancelled = true
+      window.ethereum.removeListener('chainChanged', onChainChanged)
+    }
+  }, [isConnected, accountChainId])
+
+  const activeChainId = walletChainId ?? accountChainId ?? chainId
+  const onRobinhood = isConnected && activeChainId === robinhoodChain.id
+
   const countdownSec = drawClosesAt ? Number(drawClosesAt) - now : null
   const jackpot = prizeBalance ? formatUnits(prizeBalance, 6) : null
   const tvl = vaultAssets ? formatUnits(vaultAssets, 6) : null
@@ -201,12 +228,35 @@ export default function App() {
     }
   }, [amount, allowance])
 
-  const wrongChain = isConnected && chainId !== robinhoodChain.id
-  const lowGas = ethBalance && ethBalance.value < parseEther('0.00005')
+  const wrongChain = isConnected && activeChainId !== robinhoodChain.id
+  const lowGas = onRobinhood && ethBalance && ethBalance.value < parseEther('0.00005')
+  const chainMessage = wrongChain ? chainMismatchMessage(activeChainId) : ''
 
-  async function ensureRobinhoodChain() {
-    if (chainId === robinhoodChain.id) return
-    await switchChainAsync({ chainId: robinhoodChain.id })
+  async function handleSwitchChain() {
+    setTxError('')
+    setSwitchingChain(true)
+    try {
+      await ensureRobinhoodNetwork({ switchChainAsync, currentChainId: activeChainId })
+      const id = await getWalletChainId()
+      setWalletChainId(id)
+    } catch (err) {
+      const msg = err?.shortMessage || err?.message || 'Could not switch network'
+      setTxError(/rejected|denied|cancel/i.test(msg) ? 'Network switch cancelled in wallet.' : msg)
+    } finally {
+      setSwitchingChain(false)
+    }
+  }
+
+  async function requireRobinhoodChain() {
+    if (activeChainId === robinhoodChain.id) return true
+    await ensureRobinhoodNetwork({ switchChainAsync, currentChainId: activeChainId })
+    const id = await getWalletChainId()
+    setWalletChainId(id)
+    if (id !== robinhoodChain.id) {
+      setTxError('Approve the network switch in your wallet, then try again.')
+      return false
+    }
+    return true
   }
 
   async function submitContract(params) {
@@ -217,16 +267,19 @@ export default function App() {
     if (!address || !amount || !usdgBalance) return
     setTxError('')
     try {
-      if (wrongChain) {
-        await ensureRobinhoodChain()
-      }
+      if (!(await requireRobinhoodChain())) return
       if (lowGas) {
         setTxError('Not enough ETH on Robinhood Chain for gas. Add a small amount of ETH to your wallet.')
         return
       }
       await startDeposit({ amountStr: amount, usdgBalance })
     } catch (err) {
-      setTxError(err.shortMessage || err.message || 'Transaction failed')
+      const msg = err?.shortMessage || err?.message || 'Transaction failed'
+      if (/chain.*does not match|wrong network|chain id/i.test(msg)) {
+        setTxError(chainMismatchMessage(activeChainId))
+      } else {
+        setTxError(/rejected|denied|cancel/i.test(msg) ? 'Transaction cancelled in wallet.' : msg)
+      }
     }
   }
 
@@ -234,9 +287,7 @@ export default function App() {
     if (!address) return
     setTxError('')
     try {
-      if (wrongChain) {
-        await ensureRobinhoodChain()
-      }
+      if (!(await requireRobinhoodChain())) return
       if (lowGas) {
         setTxError('Not enough ETH on Robinhood Chain for gas.')
         return
@@ -244,7 +295,12 @@ export default function App() {
       const max = maxWithdraw || vaultAssetsUser || 0n
       await startWithdraw({ amountStr: withdrawAmount, max })
     } catch (err) {
-      setTxError(err.shortMessage || err.message || 'Transaction failed')
+      const msg = err?.shortMessage || err?.message || 'Transaction failed'
+      if (/chain.*does not match|wrong network|chain id/i.test(msg)) {
+        setTxError(chainMismatchMessage(activeChainId))
+      } else {
+        setTxError(/rejected|denied|cancel/i.test(msg) ? 'Transaction cancelled in wallet.' : msg)
+      }
     }
   }
 
@@ -470,15 +526,14 @@ export default function App() {
 
           <main className="dashboard-action">
             <div className="action-card panel">
-              <div className="action-card-head">
-                <h2>Deposit & withdraw</h2>
-                <p>USDG into HoodPot — capital always withdrawable.</p>
-              </div>
               <VaultPanel
                 mode={vaultMode}
                 onModeChange={(m) => { setVaultMode(m); resetTx() }}
                 isConnected={isConnected}
                 wrongChain={wrongChain}
+                chainMessage={chainMessage}
+                switchingChain={switchingChain}
+                onSwitchChain={handleSwitchChain}
                 lowGas={lowGas}
                 onConnect={() => connect({ connector: connectors[0] })}
                 walletBalance={usdgBalance?.value}

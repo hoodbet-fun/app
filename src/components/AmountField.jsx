@@ -22,6 +22,7 @@ export function AmountField({
   token = 'USDG',
   quickAmounts,
   disabled = false,
+  compact = false,
   error,
   hint,
 }) {
@@ -44,7 +45,7 @@ export function AmountField({
   const displayError = error || (exceeds ? `Max ${displayBalance} ${token}` : '')
 
   return (
-    <div className={`amount-field ${displayError ? 'has-error' : ''}`}>
+    <div className={`amount-field ${compact ? 'amount-field-compact' : ''} ${displayError ? 'has-error' : ''}`}>
       <div className="amount-field-header">
         <label className="field-label" htmlFor={id}>{label}</label>
         <button
@@ -88,7 +89,7 @@ export function AmountField({
         ))}
       </div>
 
-      {quickAmounts?.length > 0 && (
+      {quickAmounts?.length > 0 && !compact && (
         <div className="quick-amounts">
           <span className="quick-label">Quick</span>
           {quickAmounts.map((q) => (
