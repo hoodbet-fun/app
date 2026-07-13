@@ -15,6 +15,7 @@ import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
 import { explorerAddress, explorerTx, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
 import { VaultPanel } from './components/VaultPanel.jsx'
+import { VaultSnapshot } from './components/VaultSnapshot.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
@@ -498,6 +499,8 @@ export default function App() {
                     {isConnected && <span className="stat-hint">{formatUsd(walletUsd)} wallet</span>}
                   </div>
                 </div>
+
+                <VaultSnapshot className="vault-snapshot-compact" />
 
                 <div className="info-grid info-compact">
                   <div className="info-card">
