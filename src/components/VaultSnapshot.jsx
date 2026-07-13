@@ -16,17 +16,20 @@ export function VaultSnapshot({ vaultAddress = addresses.morphoVault, className 
   return (
     <section className={`vault-snapshot ${className}`.trim()} aria-label="Morpho yield vault">
       <div className="vault-snapshot-head">
-        <div>
-          <span className="vault-snapshot-label">Yield vault</span>
-          <strong className="vault-snapshot-name">{snapshot?.name || 'hoodbet.fun'}</strong>
-          <span className="vault-snapshot-meta">Morpho · Robinhood Chain · USDG</span>
+        <div className="vault-snapshot-apy-hero">
+          <span className="vault-snapshot-stat-label">Net APY</span>
+          <strong className="vault-snapshot-apy-value">
+            {loading ? '…' : formatApyPercent(snapshot?.netApy)}
+          </strong>
+          <span className="vault-snapshot-apy-hint">Live Morpho yield on USDG</span>
         </div>
-        <div className="vault-snapshot-apys">
-          <div>
-            <span className="vault-snapshot-stat-label">Net APY</span>
-            <strong>{loading ? '…' : formatApyPercent(snapshot?.netApy)}</strong>
+        <div className="vault-snapshot-head-side">
+          <div className="vault-snapshot-identity">
+            <span className="vault-snapshot-label">Yield vault</span>
+            <strong className="vault-snapshot-name">{snapshot?.name || 'hoodbet.fun'}</strong>
+            <span className="vault-snapshot-meta">Morpho · Robinhood Chain</span>
           </div>
-          <div>
+          <div className="vault-snapshot-tvl">
             <span className="vault-snapshot-stat-label">TVL</span>
             <strong>{loading ? '…' : formatUsdCompact(snapshot?.totalAssetsUsd)}</strong>
           </div>
@@ -47,8 +50,8 @@ export function VaultSnapshot({ vaultAddress = addresses.morphoVault, className 
                   <div className="vault-allocation-top">
                     <span className="vault-allocation-label">{row.label}</span>
                     <span className="vault-allocation-stats">
-                      <strong>{row.pct.toFixed(1)}%</strong>
-                      <span>{formatApyPercent(row.apy)}</span>
+                      <strong className="vault-allocation-apy">{formatApyPercent(row.apy)}</strong>
+                      <span>{row.pct.toFixed(1)}% alloc</span>
                     </span>
                   </div>
                   <div className="vault-allocation-bar" aria-hidden>

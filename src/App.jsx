@@ -19,6 +19,8 @@ import { VaultSnapshot } from './components/VaultSnapshot.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
+import { useMorphoVaultSnapshot } from './hooks/useMorphoVaultSnapshot.js'
+import { formatApyPercent } from './morphoVault.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
@@ -181,6 +183,7 @@ export default function App() {
   })
 
   const { vault: subgraphVault } = useProtocolStatsSubgraph()
+  const { snapshot: vaultSnapshot, loading: vaultApyLoading } = useMorphoVaultSnapshot(addresses.morphoVault)
   const { draws: subgraphDraws, loading: drawsLoading } = useDrawHistory(8)
   const { winners: recentWinners, loading: winnersLoading } = useRecentWinners(12)
   const { account: subgraphAccount } = useUserVaultAccount(address)
@@ -473,10 +476,19 @@ export default function App() {
 
             {tab === 'vault' ? (
               <div className="side-stack">
-                <div className="jackpot-card jackpot-compact">
-                  <span className="jackpot-label">Prize pool</span>
-                  <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
-                  <span className="jackpot-sub">USDG · daily draws</span>
+                <div className="jackpot-card jackpot-compact jackpot-dual">
+                  <div className="jackpot-head-col">
+                    <span className="jackpot-label">Prize pool</span>
+                    <strong className="jackpot-value">${jackpot ? formatUsd(jackpot) : '—'}</strong>
+                    <span className="jackpot-sub">USDG · daily draws</span>
+                  </div>
+                  <div className="jackpot-head-col jackpot-apy-col">
+                    <span className="jackpot-label">Net APY</span>
+                    <strong className="jackpot-value jackpot-apy-value">
+                      {vaultApyLoading ? '…' : formatApyPercent(vaultSnapshot?.netApy)}
+                    </strong>
+                    <span className="jackpot-sub">Morpho yield</span>
+                  </div>
                 </div>
 
                 <div className="stats-grid stats-compact">

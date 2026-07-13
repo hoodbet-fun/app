@@ -190,8 +190,26 @@ body {
   padding: 1rem 1.15rem;
   border-radius: 16px;
 }
+.jackpot-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+  align-items: end;
+}
+.jackpot-head-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.jackpot-apy-col {
+  text-align: right;
+  align-items: flex-end;
+}
 .jackpot-compact .jackpot-value {
   font-size: clamp(1.5rem, 3vw, 2rem);
+}
+.jackpot-apy-value {
+  color: var(--primary) !important;
 }
 .stats-compact {
   grid-template-columns: repeat(2, 1fr);
@@ -211,11 +229,46 @@ body {
   padding: 0.9rem 1rem;
 }
 .vault-snapshot-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: stretch;
   gap: 1rem;
   margin-bottom: 0.85rem;
+}
+@media (max-width: 520px) {
+  .vault-snapshot-head { grid-template-columns: 1fr; }
+}
+.vault-snapshot-apy-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 200, 5, 0.35);
+  background: linear-gradient(145deg, rgba(0, 200, 5, 0.14), rgba(0, 0, 0, 0.2));
+}
+.vault-snapshot-apy-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  line-height: 1;
+  color: var(--primary);
+}
+.vault-snapshot-apy-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.vault-snapshot-head-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.vault-snapshot-tvl strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
 }
 .vault-snapshot-label {
   display: block;
@@ -238,16 +291,9 @@ body {
   font-size: 0.72rem;
   color: var(--muted);
 }
-.vault-snapshot-apys {
-  display: flex;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-.vault-snapshot-apys strong {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  color: var(--primary);
+.vault-allocation-apy {
+  color: var(--primary) !important;
+  font-size: 0.88rem;
 }
 .vault-snapshot-stat-label {
   display: block;
