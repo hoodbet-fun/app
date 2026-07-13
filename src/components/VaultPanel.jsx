@@ -1,6 +1,6 @@
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { AmountField } from './AmountField.jsx'
-import { VAULT_DEPOSIT_BLOCKED, VAULT_WITHDRAW_LIQUIDITY_ERROR } from '../deposit.js'
+import { VAULT_DEPOSIT_BLOCKED, VAULT_WITHDRAW_LIQUIDITY_ERROR, VAULT_WITHDRAW_LIQUIDITY_HINT } from '../deposit.js'
 import { formatUsd } from '../format.js'
 import { txExplorerUrl } from '../tx.js'
 
@@ -29,6 +29,7 @@ export function VaultPanel({
   walletBalance,
   walletUsd,
   maxWithdraw,
+  positionTotal,
   withdrawLiquidityLimited = false,
   depositAmount,
   onDepositAmountChange,
@@ -227,7 +228,16 @@ export function VaultPanel({
                 <div className="vault-alert" role="status">
                   <div className="vault-alert-copy">
                     <strong>Limited instant liquidity</strong>
-                    <p>{VAULT_WITHDRAW_LIQUIDITY_ERROR}</p>
+                    <p>
+                      {VAULT_WITHDRAW_LIQUIDITY_HINT}
+                      {positionTotal > 0n && maxWithdraw > 0n && (
+                        <>
+                          {' '}
+                          Position {formatUsd(formatUnits(positionTotal, 6))} · instant up to ~
+                          {formatUsd(formatUnits(maxWithdraw, 6))} now.
+                        </>
+                      )}
+                    </p>
                   </div>
                 </div>
               )}
@@ -237,12 +247,14 @@ export function VaultPanel({
                 value={withdrawAmount}
                 onChange={onWithdrawAmountChange}
                 maxBalance={maxWithdraw > 0n ? maxWithdraw : undefined}
+                balanceLabel={withdrawLiquidityLimited ? 'Instant max' : 'Available'}
+                quickAmounts={withdrawLiquidityLimited ? ['0.001'] : undefined}
                 disabled={isBusy}
                 compact
-                error={withdrawExceeds ? 'Exceeds available withdraw' : null}
+                error={withdrawExceeds ? 'Exceeds instant liquidity — try less' : null}
                 hint={
                   withdrawLiquidityLimited
-                    ? 'Enter a small amount — full balance may not be instant while Morpho lends USDG.'
+                    ? 'Start with $0.001 or less. The rest of your position unlocks as Morpho liquidity returns.'
                     : 'No lock-up · withdrawing lowers your TWAB odds'
                 }
               />
@@ -253,7 +265,9 @@ export function VaultPanel({
                   View on Blockscout →
                 </a>
               )}
-              {txError && <div className="error-banner error-inline">{txError}</div>}
+              {txError && txError !== VAULT_WITHDRAW_LIQUIDITY_ERROR && (
+                <div className="error-banner error-inline">{txError}</div>
+              )}
             </>
           )}
         </div>

@@ -107,6 +107,13 @@ export default function App() {
     functionName: 'totalAssets',
   })
 
+  const { data: morphoIdleUsdg } = useReadContract({
+    address: addresses.usdg,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [addresses.morphoVault],
+  })
+
   const { data: usdgBalance, refetch: refetchUsdg } = useBalance({
     address,
     token: addresses.usdg,
@@ -251,8 +258,14 @@ export default function App() {
   const lastSubgraphDraw = subgraphDraws[0] ?? null
   const walletUsd = usdgBalance ? formatUnits(usdgBalance.value, usdgBalance.decimals) : '0'
 
-  // Use on-chain maxWithdraw only — convertToAssets overstates instant liquidity in Morpho.
-  const withdrawableMax = maxWithdraw ?? 0n
+  // maxWithdraw is often 0 on Morpho-backed vaults; estimate instant slice from idle Morpho cash.
+  const instantWithdrawMax = useMemo(() => {
+    if (!vaultAssetsUser || !vaultAssets || vaultAssets === 0n || morphoIdleUsdg == null) return 0n
+    const share = (morphoIdleUsdg * vaultAssetsUser) / vaultAssets
+    return share > 0n ? (share * 90n) / 100n : 0n
+  }, [morphoIdleUsdg, vaultAssetsUser, vaultAssets])
+
+  const withdrawableMax = maxWithdraw > 0n ? maxWithdraw : instantWithdrawMax
   const withdrawLiquidityLimited = Boolean(
     vaultAssetsUser && vaultAssetsUser > 0n && withdrawableMax < vaultAssetsUser,
   )
@@ -681,6 +694,7 @@ export default function App() {
                 walletBalance={usdgBalance?.value}
                 walletUsd={walletUsd}
                 maxWithdraw={withdrawableMax}
+                positionTotal={vaultAssetsUser ?? 0n}
                 withdrawLiquidityLimited={withdrawLiquidityLimited}
                 depositAmount={amount}
                 onDepositAmountChange={setAmount}

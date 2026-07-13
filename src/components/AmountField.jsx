@@ -20,6 +20,7 @@ export function AmountField({
   maxBalance,
   decimals = 6,
   token = 'USDG',
+  balanceLabel = 'Available',
   quickAmounts,
   disabled = false,
   compact = false,
@@ -55,7 +56,7 @@ export function AmountField({
           disabled={disabled || !maxBalance || maxBalance === 0n}
           title={`Use full balance (${displayBalance} ${token})`}
         >
-          Available <strong>{displayBalance}</strong> {token}
+          {balanceLabel} <strong>{displayBalance}</strong> {token}
         </button>
       </div>
 

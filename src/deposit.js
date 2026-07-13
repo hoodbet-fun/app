@@ -10,8 +10,11 @@ export const VAULT_DEPOSIT_BLOCKED = {
 
 export const VAULT_YIELD_BUFFER_ERROR = VAULT_DEPOSIT_BLOCKED.description
 
+export const VAULT_WITHDRAW_LIQUIDITY_HINT =
+  'Most vault USDG is lent in Morpho. Your full position is safe, but only a small slice may be instant until liquidity returns.'
+
 export const VAULT_WITHDRAW_LIQUIDITY_ERROR =
-  'Instant withdraw is limited: most vault USDG is deployed in Morpho lending markets. Try a smaller amount, or wait for borrowers to repay and free liquidity.'
+  'Amount exceeds instant Morpho liquidity. Try a smaller withdraw (e.g. $0.001).'
 
 export function parseDepositError(err) {
   const msg = err?.shortMessage || err?.message || err?.cause?.message || 'Transaction failed'
