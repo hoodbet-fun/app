@@ -38,6 +38,8 @@ export const links = {
   x: 'https://x.com/hoodbet_fun',
   morphoVault:
     'https://app.morpho.org/robinhood-chain/vault/0xDF06045aBAE69d6e73a7F0197FED917032d22194/hoodbetfun',
+  getUsdg:
+    'https://jumper.xyz/?toChain=4663&toToken=0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
 }
 
 export const hoodTokenLinks = {

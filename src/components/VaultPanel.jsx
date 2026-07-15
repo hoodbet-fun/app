@@ -1,5 +1,6 @@
 import { formatUnits, parseUnits } from 'viem'
 import { AmountField } from './AmountField.jsx'
+import { UsdgOnramp } from './UsdgOnramp.jsx'
 import { VAULT_DEPOSIT_BLOCKED, VAULT_WITHDRAW_LIQUIDITY_ERROR, VAULT_WITHDRAW_LIQUIDITY_HINT } from '../deposit.js'
 import { formatUsd } from '../format.js'
 import { txExplorerUrl } from '../tx.js'
@@ -154,13 +155,14 @@ export function VaultPanel({
               <p className="vault-empty-text">Complete the setup steps above to {isDeposit ? 'deposit' : 'withdraw'}.</p>
             </div>
           ) : isDeposit && !depositReady && !depositPaused ? (
-            <div className="vault-empty-state vault-empty-muted">
+            <div className="vault-empty-state vault-empty-muted vault-empty-funding">
               <p className="vault-empty-title">Almost ready</p>
               <p className="vault-empty-text">
                 {lowGas
                   ? 'Add a small amount of ETH on Robinhood Chain for gas.'
                   : `You need USDG in your wallet (currently $${formatUsd(walletUsd)}).`}
               </p>
+              {!lowGas && <UsdgOnramp compact defaultTarget="usdg" />}
             </div>
           ) : isDeposit ? (
             <>

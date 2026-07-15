@@ -1,3 +1,5 @@
+import { UsdgOnramp } from './UsdgOnramp.jsx'
+
 const STEPS = [
   { id: 'connect', label: 'Connect wallet' },
   { id: 'network', label: 'Robinhood Chain' },
@@ -114,6 +116,7 @@ export function OnboardingFlow({
               <strong>{hasGas ? 'Ready' : 'Low'}</strong>
             </li>
           </ul>
+          {!hasUsdg && hasGas && <UsdgOnramp defaultTarget="usdg" />}
         </div>
       )}
 
