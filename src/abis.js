@@ -15,6 +15,17 @@ export const erc20Abi = [
   },
 ]
 
+/** Morpho MetaMorpho — accrueInterest mints fee shares before balanceOf reflects pending fees. */
+export const morphoVaultAbi = [
+  {
+    name: 'accrueInterest',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: [],
+  },
+]
+
 export const erc4626Abi = [
   { name: 'totalAssets', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   {

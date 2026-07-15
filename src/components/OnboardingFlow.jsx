@@ -116,7 +116,7 @@ export function OnboardingFlow({
               <strong>{hasGas ? 'Ready' : 'Low'}</strong>
             </li>
           </ul>
-          {!hasUsdg && hasGas && <UsdgOnramp defaultTarget="usdg" />}
+          {!hasUsdg && hasGas && <UsdgOnramp />}
         </div>
       )}
 

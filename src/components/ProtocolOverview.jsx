@@ -15,8 +15,8 @@ export function ProtocolOverview({
 }) {
   const pool = jackpot != null ? Number(jackpot) : null
   const pending = pendingHarvesterUsd != null ? Number(pendingHarvesterUsd) : 0
-  const combined = pool != null ? pool + pending : null
-  const hasPending = pending > 0
+  const hasAccrued = pending > 0
+  const display = pool != null ? pool + pending : null
 
   return (
     <div className="protocol-overview">
@@ -27,21 +27,21 @@ export function ProtocolOverview({
         </div>
         <span className="jackpot-label">Today&apos;s prize pool</span>
         <strong className="jackpot-value jackpot-value-live">
-          ${combined != null ? formatLivePrizeUsd(combined) : '—'}
+          ${display != null ? formatLivePrizeUsd(display) : '—'}
         </strong>
         {pool != null && (
-          <span className={`jackpot-pending ${hasPending ? '' : 'jackpot-pending-muted'}`}>
-            {hasPending ? (
+          <span className={`jackpot-pending ${hasAccrued ? '' : 'jackpot-pending-muted'}`}>
+            {hasAccrued ? (
               <>
-                ${formatUsdg(pool)} in pool · +${formatUsdg(pendingHarvesterUsd)} unharvested Morpho fees
+                ${formatUsdg(pool)} in pool · +${formatUsdg(pendingHarvesterUsd)} accrued on harvester
               </>
             ) : (
-              <>Morpho fees accrue on-chain · bot harvests into pool every ~30s</>
+              <>Morpho fees accrue on-chain · bot harvests into pool when shares are available</>
             )}
           </span>
         )}
         <span className="jackpot-sub">
-          {prizeLoading ? 'Updating… · ' : ''}
+          {prizeLoading ? 'Simulating on-chain accrual · ' : hasAccrued ? 'On-chain preview · ' : ''}
           Funded by vault yield · paid to draw winners
         </span>
       </div>

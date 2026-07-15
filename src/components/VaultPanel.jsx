@@ -162,7 +162,7 @@ export function VaultPanel({
                   ? 'Add a small amount of ETH on Robinhood Chain for gas.'
                   : `You need USDG in your wallet (currently $${formatUsd(walletUsd)}).`}
               </p>
-              {!lowGas && <UsdgOnramp compact defaultTarget="usdg" />}
+              {!lowGas && <UsdgOnramp compact />}
             </div>
           ) : isDeposit ? (
             <>
