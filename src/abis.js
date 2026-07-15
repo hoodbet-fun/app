@@ -101,6 +101,7 @@ export const prizePoolAbi = [
   { name: 'accountedBalance', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { name: 'getOpenDrawId', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint24' }] },
   { name: 'getLastAwardedDrawId', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint24' }] },
+  { name: 'firstDrawOpensAt', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint48' }] },
   { name: 'getDrawIdToAward', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint24' }] },
   { name: 'drawClosesAt', type: 'function', stateMutability: 'view', inputs: [{ name: 'drawId', type: 'uint24' }], outputs: [{ type: 'uint48' }] },
   { name: 'drawOpensAt', type: 'function', stateMutability: 'view', inputs: [{ name: 'drawId', type: 'uint24' }], outputs: [{ type: 'uint48' }] },

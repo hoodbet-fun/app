@@ -4,6 +4,16 @@ export function formatUsd(value, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
 }
 
+/** Prize pool / micro-USDG: up to 6 decimals when amount is small. */
+export function formatPrizeUsd(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  if (n === 0) return '0.00'
+  if (n >= 1) return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (n >= 0.01) return n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+  return formatUsdg(value)
+}
+
 /** Full-precision USDG display (up to 6 decimals, trims trailing zeros). */
 export function formatUsdg(value) {
   const n = Number(value)

@@ -12,20 +12,23 @@ import {
 import { formatUnits, parseEther, parseUnits, zeroAddress } from 'viem'
 import { addresses, links, robinhoodChain, wagmiConfig } from './config.js'
 import { claimerAbi, erc20Abi, erc4626Abi, pointsAbi, prizePoolAbi } from './abis.js'
-import { explorerAddress, explorerTx, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
+import { explorerAddress, formatCountdown, formatTimestamp, formatUsd, shortenAddress } from './format.js'
+import { ShareHoodPot } from './components/ShareHoodPot.jsx'
 import { VaultPanel } from './components/VaultPanel.jsx'
 import { HoodTokenCard } from './components/HoodTokenCard.jsx'
-import { VaultSnapshot } from './components/VaultSnapshot.jsx'
+import { OnboardingFlow } from './components/OnboardingFlow.jsx'
+import { UserDashboard } from './components/UserDashboard.jsx'
+import { ProtocolOverview } from './components/ProtocolOverview.jsx'
+import { PrizesPanel } from './components/PrizesPanel.jsx'
 import { StackStrip } from './components/StackStrip.jsx'
 import { useVaultTx } from './hooks/useVaultTx.js'
 import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
 import { useMorphoVaultSnapshot } from './hooks/useMorphoVaultSnapshot.js'
 import { useClaimablePrizes } from './hooks/useClaimablePrizes.js'
-import { formatApyPercent } from './morphoVault.js'
+import { useHarvesterPending } from './hooks/useHarvesterPending.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
-const TIER_LABELS = ['Canary', 'Tier 1', 'Tier 2', 'Grand']
 const TABS = [
   { id: 'vault', label: 'Overview', icon: '◆' },
   { id: 'prizes', label: 'Prizes', icon: '★' },
@@ -77,6 +80,12 @@ export default function App() {
     address: addresses.prizePool,
     abi: prizePoolAbi,
     functionName: 'getLastAwardedDrawId',
+  })
+
+  const { data: firstDrawOpensAt } = useReadContract({
+    address: addresses.prizePool,
+    abi: prizePoolAbi,
+    functionName: 'firstDrawOpensAt',
   })
 
   const { data: numberOfTiers } = useReadContract({
@@ -196,6 +205,8 @@ export default function App() {
 
   const { vault: subgraphVault } = useProtocolStatsSubgraph()
   const { snapshot: vaultSnapshot, loading: vaultApyLoading } = useMorphoVaultSnapshot(addresses.morphoVault)
+  const { pendingAssets: harvesterPendingAssets } = useHarvesterPending()
+  const pendingHarvesterUsd = formatUnits(harvesterPendingAssets, 6)
   const {
     prizes: claimablePrizes,
     total: claimableTotal,
@@ -305,6 +316,16 @@ export default function App() {
   const wrongChain = isConnected && activeChainId !== robinhoodChain.id
   const lowGas = onRobinhood && ethBalance && ethBalance.value < parseEther('0.00005')
   const chainMessage = wrongChain ? chainMismatchMessage(activeChainId) : ''
+
+  const firstDrawOpen = firstDrawOpensAt != null && now >= Number(firstDrawOpensAt)
+  const hasAwardedDraws = lastAwardedDrawId != null && lastAwardedDrawId > 0n
+  const firstDrawLabel = firstDrawOpensAt
+    ? formatTimestamp(Number(firstDrawOpensAt))
+    : 'soon'
+  const hasUsdg = Boolean(usdgBalance && usdgBalance.value > 0n)
+  const hasGas = Boolean(onRobinhood && ethBalance && ethBalance.value >= parseEther('0.00005'))
+  const hasPosition = Number(position) > 0
+  const depositReady = isConnected && onRobinhood && hasUsdg && hasGas && !vaultDepositBlocked
 
   async function handleSwitchChain() {
     setTxError('')
@@ -433,6 +454,7 @@ export default function App() {
           </div>
           <div className="nav-actions">
             <a className="nav-link" href={links.docs} target="_blank" rel="noreferrer">Docs</a>
+            <a className="nav-link" href={links.x} target="_blank" rel="noreferrer">X</a>
             <a className="nav-link" href={links.telegram} target="_blank" rel="noreferrer">Telegram</a>
             {isConnected && address && <TierBadge address={address} />}
             {isConnected ? (
@@ -479,70 +501,46 @@ export default function App() {
 
             {tab === 'vault' ? (
               <div className="side-stack">
-                <div className="jackpot-card jackpot-compact jackpot-hero">
-                  <div className="jackpot-apy-badge" aria-label="Net APY">
-                    <span className="jackpot-apy-badge-label">Net APY</span>
-                    <strong>{vaultApyLoading ? '…' : formatApyPercent(vaultSnapshot?.netApy)}</strong>
-                  </div>
-                  <span className="jackpot-label">Prize pool</span>
-                  <strong className="jackpot-value">${jackpot != null ? formatUsd(jackpot) : '—'}</strong>
-                  <span className="jackpot-sub">USDG · daily draws · grows from yield</span>
+                <ProtocolOverview
+                  jackpot={jackpot}
+                  pendingHarvesterUsd={pendingHarvesterUsd}
+                  tvl={tvl}
+                  countdownSec={countdownSec}
+                  openDrawId={openDrawId}
+                  drawsStarted={firstDrawOpen || hasAwardedDraws}
+                  firstDrawLabel={firstDrawLabel}
+                  netApy={vaultSnapshot?.netApy}
+                  apyLoading={vaultApyLoading}
+                />
+
+                <UserDashboard
+                  isConnected={isConnected}
+                  positionUsd={position}
+                  walletUsd={walletUsd}
+                  oddsPercent={oddsPercent}
+                  drawsStarted={firstDrawOpen || hasAwardedDraws}
+                  firstDrawLabel={firstDrawLabel}
+                  claimableTotalUsd={claimableTotalUsd}
+                  claimableCount={claimablePrizes.length}
+                  scanningPrizes={scanningPrizes}
+                  onGoPrizes={() => setTab('prizes')}
+                />
+
+                <div className="share-row">
+                  <ShareHoodPot />
+                  <a className="btn btn-ghost btn-sm" href={links.morphoVault} target="_blank" rel="noreferrer">
+                    Morpho vault
+                  </a>
                 </div>
-
-                {isConnected && (
-                  <button
-                    type="button"
-                    className={`claimable-banner ${claimablePrizes.length > 0 ? 'has-prizes' : ''}`}
-                    onClick={() => setTab('prizes')}
-                  >
-                    <div className="claimable-banner-copy">
-                      <span className="claimable-banner-label">To claim</span>
-                      <strong className="claimable-banner-value">
-                        {scanningPrizes ? '…' : `$${formatUsd(claimableTotalUsd)}`}
-                      </strong>
-                      <span className="claimable-banner-hint">
-                        {scanningPrizes
-                          ? 'Scanning prizes…'
-                          : claimablePrizes.length > 0
-                            ? `${claimablePrizes.length} unclaimed prize${claimablePrizes.length > 1 ? 's' : ''}`
-                            : 'No prizes to claim yet'}
-                      </span>
-                    </div>
-                    <span className="claimable-banner-action">Prizes →</span>
-                  </button>
-                )}
-
-                <div className="stats-grid stats-compact">
-                  <div className="stat-card">
-                    <span className="stat-label">Vault TVL</span>
-                    <strong>${tvl ? formatUsd(tvl) : '—'}</strong>
-                  </div>
-                  <div className="stat-card highlight">
-                    <span className="stat-label">Next draw</span>
-                    <strong>{countdownSec != null ? formatCountdown(countdownSec) : '—'}</strong>
-                    <span className="stat-hint">#{openDrawId?.toString() || '—'}</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-label">Your position</span>
-                    <strong>${formatUsd(position)}</strong>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-label">Your odds</span>
-                    <strong>{oddsPercent != null ? `${oddsPercent < 0.0001 ? '<0.0001' : oddsPercent.toFixed(4)}%` : '—'}</strong>
-                    {isConnected && <span className="stat-hint">{formatUsd(walletUsd)} wallet</span>}
-                  </div>
-                </div>
-
-                <VaultSnapshot className="vault-snapshot-compact" />
 
                 <div className="info-grid info-compact">
                   <div className="info-card">
-                    <h3>TWAB odds</h3>
-                    <p>Longer deposits + larger balance = better chance each draw.</p>
+                    <h3>How it works</h3>
+                    <p>Deposit USDG → earn draw entries → win prizes from the pool. Your deposit is always yours.</p>
                   </div>
                   <div className="info-card">
                     <h3>$HOOD tiers</h3>
-                    <p>{TIER_NAMES.join(' → ')} — referral boosts at launch.</p>
+                    <p>{TIER_NAMES.join(' → ')} — optional boosts for future products.</p>
                   </div>
                 </div>
 
@@ -552,138 +550,50 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <div className="side-stack panel prizes-side">
-                <div className="panel-head">
-                  <h2>Prizes & claims</h2>
-                  <p>
-                    Draw #{lastAwardedDrawId?.toString() || lastSubgraphDraw?.drawId?.toString() || '0'} last awarded.
-                    {lastAwardedDrawId === 0n && !lastSubgraphDraw && ' First draw pending.'}
-                  </p>
-                  {isConnected && (
-                    <div className="claimable-total">
-                      <span>Claimable now</span>
-                      <strong>{scanningPrizes ? '…' : `$${formatUsd(claimableTotalUsd)}`}</strong>
-                    </div>
-                  )}
-                </div>
-
-                {!isConnected ? (
-                  <div className="connect-prompt connect-compact">
-                    <p>Connect wallet to scan for wins.</p>
-                  </div>
-                ) : scanningPrizes ? (
-                  <p className="muted">Scanning on-chain…</p>
-                ) : claimablePrizes.length > 0 ? (
-                  <>
-                    <div className="prize-wins">
-                      {claimablePrizes.map((c) => (
-                        <div key={`${c.tier}-${c.prizeIndex}`} className="prize-win-card">
-                          <div>
-                            <span className="prize-tier">{TIER_LABELS[c.tier] || `Tier ${c.tier}`}</span>
-                            <strong>Prize #{c.prizeIndex + 1}</strong>
-                          </div>
-                          <strong className="prize-win-amount">
-                            ${formatUsd(formatUnits(c.amount, 6))}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      className="btn btn-primary btn-full"
-                      type="button"
-                      disabled={claiming || isBusy}
-                      onClick={handleClaimAll}
-                    >
-                      {claiming
-                        ? 'Claiming…'
-                        : `Claim $${formatUsd(claimableTotalUsd)}`}
-                    </button>
-                  </>
-                ) : (
-                  <div className="empty-prizes empty-compact">
-                    <p><strong>No prizes to claim.</strong></p>
-                    <p className="muted">Keep deposited to build TWAB before the next draw.</p>
-                    <button type="button" className="btn btn-ghost" onClick={refreshClaimablePrizes}>Refresh</button>
-                  </div>
-                )}
-
-                <div className="history-section">
-                  <h3>Recent winners</h3>
-                  {winnersLoading ? (
-                    <p className="muted">Loading from indexer…</p>
-                  ) : recentWinners.length > 0 ? (
-                    <div className="draw-history">
-                      {recentWinners.map((w) => (
-                        <div key={w.id} className="draw-history-item">
-                          <span className="prize-tier">{TIER_LABELS[w.tier] || `Tier ${w.tier}`}</span>
-                          <div className="draw-history-main">
-                            <strong>${formatUsd(formatUnits(BigInt(w.payout), 6))}</strong>
-                            <span className="muted">
-                              Draw #{w.draw?.drawId ?? '—'} · {formatTimestamp(w.timestamp)}
-                            </span>
-                          </div>
-                          <a
-                            className="draw-history-link"
-                            href={explorerAddress(w.winner)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {shortenAddress(w.winner)}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">No winners indexed yet.</p>
-                  )}
-                </div>
-
-                <div className="history-section">
-                  <h3>Draw history</h3>
-                  {drawsLoading ? (
-                    <p className="muted">Loading from indexer…</p>
-                  ) : subgraphDraws.length > 0 ? (
-                    <div className="draw-history">
-                      {subgraphDraws.map((d) => (
-                        <div key={d.drawId} className="draw-history-item draw-history-draw">
-                          <span className="prize-tier">#{d.drawId}</span>
-                          <div className="draw-history-main">
-                            <strong>
-                              {d.prizeClaims?.length
-                                ? `${d.prizeClaims.length} winner${d.prizeClaims.length > 1 ? 's' : ''}`
-                                : 'Awarded'}
-                            </strong>
-                            <span className="muted">
-                              Reserve ${formatUsd(formatUnits(BigInt(d.reserve || 0), 6))} · {formatTimestamp(d.timestamp)}
-                            </span>
-                          </div>
-                          {d.txHash && (
-                            <a
-                              className="draw-history-link"
-                              href={explorerTx(d.txHash)}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Tx
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">No draws indexed yet.</p>
-                  )}
-                </div>
+              <div className="side-stack">
+                <PrizesPanel
+                isConnected={isConnected}
+                onConnect={() => connect({ connector: connectors[0] })}
+                lastAwardedDrawId={lastAwardedDrawId}
+                lastSubgraphDraw={lastSubgraphDraw}
+                firstDrawLabel={firstDrawLabel}
+                drawsStarted={firstDrawOpen || hasAwardedDraws}
+                claimablePrizes={claimablePrizes}
+                claimableTotalUsd={claimableTotalUsd}
+                scanningPrizes={scanningPrizes}
+                claiming={claiming}
+                isBusy={isBusy}
+                onClaimAll={handleClaimAll}
+                onRefresh={refreshClaimablePrizes}
+                recentWinners={recentWinners}
+                winnersLoading={winnersLoading}
+                subgraphDraws={subgraphDraws}
+                drawsLoading={drawsLoading}
+                />
               </div>
             )}
           </aside>
 
           <main className="dashboard-action">
+            <OnboardingFlow
+              isConnected={isConnected}
+              onRobinhood={onRobinhood}
+              hasGas={hasGas}
+              hasUsdg={hasUsdg}
+              hasPosition={hasPosition}
+              walletUsd={walletUsd}
+              positionUsd={position}
+              onConnect={() => connect({ connector: connectors[0] })}
+              onSwitchChain={handleSwitchChain}
+              switchingChain={switchingChain}
+              isConnecting={isConnecting}
+            />
             <div className="action-card panel">
               <VaultPanel
                 mode={vaultMode}
                 onModeChange={(m) => { setVaultMode(m); resetTx() }}
                 isConnected={isConnected}
+                depositReady={depositReady}
                 wrongChain={wrongChain}
                 chainMessage={chainMessage}
                 switchingChain={switchingChain}
@@ -719,8 +629,10 @@ export default function App() {
         </div>
 
         <footer className="footer footer-compact">
+          <a href={links.x} target="_blank" rel="noreferrer">X</a>
           <a href={links.telegram} target="_blank" rel="noreferrer">Telegram</a>
           <a href={links.docs} target="_blank" rel="noreferrer">Docs</a>
+          <a href={links.morphoVault} target="_blank" rel="noreferrer">Morpho</a>
           <a href={links.github} target="_blank" rel="noreferrer">GitHub</a>
           <a href={links.landing} target="_blank" rel="noreferrer">hoodbet.fun</a>
         </footer>

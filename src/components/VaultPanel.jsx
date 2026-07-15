@@ -19,6 +19,7 @@ export function VaultPanel({
   mode,
   onModeChange,
   isConnected,
+  depositReady = false,
   wrongChain,
   chainMessage,
   switchingChain,
@@ -117,19 +118,6 @@ export function VaultPanel({
             Withdraw
           </button>
         </div>
-
-        <div className="vault-stats">
-          <div className="vault-stat vault-stat-primary">
-            <span className="vault-stat-label">Position</span>
-            <strong className="vault-stat-value">${formatUsd(positionUsd)}</strong>
-          </div>
-          {isConnected && (
-            <div className="vault-stat">
-              <span className="vault-stat-label">Wallet</span>
-              <strong className="vault-stat-value">${formatUsd(walletUsd)}</strong>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="vault-panel-body">
@@ -160,26 +148,19 @@ export function VaultPanel({
         )}
 
         <div className={`vault-panel-main ${depositPaused ? 'is-paused' : ''}`}>
-          {!isConnected ? (
-            <div className="vault-empty-state">
-              <p className="vault-empty-title">Connect your wallet</p>
-              <p className="vault-empty-text">Use Robinhood Chain to deposit USDG into HoodPot.</p>
-              <button className="btn btn-primary btn-full" type="button" onClick={onConnect}>
-                Connect wallet
-              </button>
+          {!isConnected || wrongChain ? (
+            <div className="vault-empty-state vault-empty-muted">
+              <p className="vault-empty-title">Deposit & withdraw</p>
+              <p className="vault-empty-text">Complete the setup steps above to {isDeposit ? 'deposit' : 'withdraw'}.</p>
             </div>
-          ) : wrongChain ? (
-            <div className="vault-empty-state">
-              <p className="vault-empty-title">Wrong network</p>
-              <p className="vault-empty-text">Deposits only work on <strong>Robinhood Chain (4663)</strong>.</p>
-              <button
-                className="btn btn-primary btn-full"
-                type="button"
-                disabled={switchingChain}
-                onClick={onSwitchChain}
-              >
-                {switchingChain ? 'Switching network…' : 'Switch to Robinhood Chain'}
-              </button>
+          ) : isDeposit && !depositReady && !depositPaused ? (
+            <div className="vault-empty-state vault-empty-muted">
+              <p className="vault-empty-title">Almost ready</p>
+              <p className="vault-empty-text">
+                {lowGas
+                  ? 'Add a small amount of ETH on Robinhood Chain for gas.'
+                  : `You need USDG in your wallet (currently $${formatUsd(walletUsd)}).`}
+              </p>
             </div>
           ) : isDeposit ? (
             <>
@@ -199,7 +180,7 @@ export function VaultPanel({
                       ? 'Loading allowance…'
                       : needsApproval && depositAmount && !depositExceeds
                         ? 'One-time USDG approval, then deposit runs automatically.'
-                        : 'No lock-up · withdraw anytime'
+                        : 'Principal stays yours · only yield funds prizes'
                 }
               />
 
@@ -272,7 +253,7 @@ export function VaultPanel({
           )}
         </div>
 
-        {isConnected && !wrongChain && (
+        {isConnected && !wrongChain && (isDeposit ? depositReady || depositPaused : true) && (
           <div className="vault-panel-foot">
             {isDeposit ? (
               <>
