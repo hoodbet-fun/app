@@ -64,10 +64,11 @@ export default function App() {
 
   const vaultAddress = addresses.prizeVault || addresses.morphoVault
 
-  const { data: prizeBalance } = useReadContract({
+  const { data: prizeBalance, isLoading: prizeLoading } = useReadContract({
     address: addresses.prizePool,
     abi: prizePoolAbi,
     functionName: 'accountedBalance',
+    query: { refetchInterval: 12_000 },
   })
 
   const { data: openDrawId } = useReadContract({
@@ -205,7 +206,7 @@ export default function App() {
 
   const { vault: subgraphVault } = useProtocolStatsSubgraph()
   const { snapshot: vaultSnapshot, loading: vaultApyLoading } = useMorphoVaultSnapshot(addresses.morphoVault)
-  const { pendingAssets: harvesterPendingAssets } = useHarvesterPending()
+  const { pendingAssets: harvesterPendingAssets, loading: harvesterPendingLoading } = useHarvesterPending()
   const pendingHarvesterUsd = formatUnits(harvesterPendingAssets, 6)
   const {
     prizes: claimablePrizes,
@@ -511,6 +512,7 @@ export default function App() {
                   firstDrawLabel={firstDrawLabel}
                   netApy={vaultSnapshot?.netApy}
                   apyLoading={vaultApyLoading}
+                  prizeLoading={prizeLoading || harvesterPendingLoading}
                 />
 
                 <UserDashboard

@@ -4,6 +4,20 @@ export function formatUsd(value, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
 }
 
+/** Prize pool hero — keeps 4–7 fractional digits so micro accrual is visible (e.g. 10.0002132). */
+export function formatLivePrizeUsd(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  const sign = n < 0 ? '-' : ''
+  const abs = Math.abs(n)
+  const [intRaw, decRaw = ''] = abs.toFixed(7).split('.')
+  const intFmt = Number(intRaw).toLocaleString('en-US')
+  let dec = decRaw.replace(/0+$/, '')
+  if (dec.length < 4) dec = decRaw.slice(0, 4)
+  if (dec.length > 7) dec = dec.slice(0, 7)
+  return `${sign}${intFmt}.${dec}`
+}
+
 /** Prize pool / micro-USDG: up to 6 decimals when amount is small. */
 export function formatPrizeUsd(value) {
   const n = Number(value)

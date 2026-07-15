@@ -236,6 +236,14 @@ body {
   color: rgba(255, 215, 0, 0.85);
   font-variant-numeric: tabular-nums;
 }
+.jackpot-pending-muted {
+  color: var(--muted);
+  font-weight: 500;
+}
+.jackpot-value-live {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
 .stats-compact {
   grid-template-columns: repeat(2, 1fr);
   margin-bottom: 0;

@@ -1,5 +1,5 @@
+import { formatCountdown, formatLivePrizeUsd, formatUsd, formatUsdg } from '../format.js'
 import { formatApyPercent } from '../morphoVault.js'
-import { formatCountdown, formatPrizeUsd, formatUsd, formatUsdg } from '../format.js'
 
 export function ProtocolOverview({
   jackpot,
@@ -11,7 +11,13 @@ export function ProtocolOverview({
   firstDrawLabel,
   netApy,
   apyLoading,
+  prizeLoading = false,
 }) {
+  const pool = jackpot != null ? Number(jackpot) : null
+  const pending = pendingHarvesterUsd != null ? Number(pendingHarvesterUsd) : 0
+  const combined = pool != null ? pool + pending : null
+  const hasPending = pending > 0
+
   return (
     <div className="protocol-overview">
       <div className="jackpot-card jackpot-compact jackpot-hero">
@@ -20,13 +26,24 @@ export function ProtocolOverview({
           <strong>{apyLoading ? '…' : formatApyPercent(netApy)}</strong>
         </div>
         <span className="jackpot-label">Today&apos;s prize pool</span>
-        <strong className="jackpot-value">${jackpot != null ? formatPrizeUsd(jackpot) : '—'}</strong>
-        {pendingHarvesterUsd != null && Number(pendingHarvesterUsd) > 0 && (
-          <span className="jackpot-pending">
-            + ${formatUsdg(pendingHarvesterUsd)} pending harvest (Morpho fees)
+        <strong className="jackpot-value jackpot-value-live">
+          ${combined != null ? formatLivePrizeUsd(combined) : '—'}
+        </strong>
+        {pool != null && (
+          <span className={`jackpot-pending ${hasPending ? '' : 'jackpot-pending-muted'}`}>
+            {hasPending ? (
+              <>
+                ${formatUsdg(pool)} in pool · +${formatUsdg(pendingHarvesterUsd)} unharvested Morpho fees
+              </>
+            ) : (
+              <>Morpho fees accrue on-chain · bot harvests into pool every ~30s</>
+            )}
           </span>
         )}
-        <span className="jackpot-sub">Funded by vault yield · paid to draw winners</span>
+        <span className="jackpot-sub">
+          {prizeLoading ? 'Updating… · ' : ''}
+          Funded by vault yield · paid to draw winners
+        </span>
       </div>
 
       <div className="protocol-stats">
