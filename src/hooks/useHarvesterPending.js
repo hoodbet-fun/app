@@ -5,7 +5,8 @@ import { usePublicClient } from 'wagmi'
 import { addresses } from '../config.js'
 import { erc4626Abi, morphoVaultAbi } from '../abis.js'
 
-const PRIZE_POLL_MS = 12_000
+/** Re-anchor on-chain pending occasionally; UI extrapolates between syncs. */
+const PRIZE_POLL_MS = 5 * 60_000
 
 const morphoSimAbi = [...morphoVaultAbi, ...erc4626Abi]
 

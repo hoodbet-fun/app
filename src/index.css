@@ -244,6 +244,155 @@ body {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+
+.jackpot-card-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.jackpot-card-btn:hover {
+  border-color: rgba(0, 200, 5, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 200, 5, 0.12);
+}
+.jackpot-card-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.prize-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+.prize-modal {
+  width: min(100%, 520px);
+  max-height: min(92vh, 780px);
+  overflow: auto;
+  border-radius: 18px 18px 14px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+.prize-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.15rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.prize-modal-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.prize-modal-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.prize-modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.prize-modal-close:hover { background: rgba(255, 255, 255, 0.1); }
+.prize-modal-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem 0.5rem;
+}
+.prize-modal-total span {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.prize-modal-total strong {
+  font-size: 1.45rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+}
+.prize-modal-breakdown {
+  margin: 0;
+  padding: 0 1.15rem 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.prize-modal-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.88rem;
+}
+.prize-modal-breakdown dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+.prize-modal-breakdown dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.prize-modal-breakdown-meta dt,
+.prize-modal-breakdown-meta dd {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.prize-modal-note {
+  margin: 0 1.15rem 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.prize-modal-vault {
+  margin: 0 1.15rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.prize-modal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1.15rem 1.15rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.prize-modal-links a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.prize-modal-links a:hover { text-decoration: underline; }
+
+@media (min-width: 640px) {
+  .prize-modal-backdrop { align-items: center; }
+  .prize-modal { border-radius: 18px; }
+}
 .stats-compact {
   grid-template-columns: repeat(2, 1fr);
   margin-bottom: 0;

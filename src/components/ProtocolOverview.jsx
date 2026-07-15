@@ -1,18 +1,25 @@
+import { useState } from 'react'
 import { formatCountdown, formatLivePrizeUsd, formatUsd, formatUsdg } from '../format.js'
 import { formatApyPercent } from '../morphoVault.js'
+import { PrizePoolModal } from './PrizePoolModal.jsx'
 
 export function ProtocolOverview({
   jackpot,
   pendingHarvesterUsd,
+  onChainPendingHarvesterUsd,
+  isLiveEstimate = false,
   tvl,
   countdownSec,
   openDrawId,
   drawsStarted,
   firstDrawLabel,
+  firstDrawCountdownSec,
   netApy,
   apyLoading,
+  vaultSnapshot,
   prizeLoading = false,
 }) {
+  const [modalOpen, setModalOpen] = useState(false)
   const pool = jackpot != null ? Number(jackpot) : null
   const pending = pendingHarvesterUsd != null ? Number(pendingHarvesterUsd) : 0
   const hasAccrued = pending > 0
@@ -20,7 +27,12 @@ export function ProtocolOverview({
 
   return (
     <div className="protocol-overview">
-      <div className="jackpot-card jackpot-compact jackpot-hero">
+      <button
+        type="button"
+        className="jackpot-card jackpot-compact jackpot-hero jackpot-card-btn"
+        onClick={() => setModalOpen(true)}
+        aria-label="Open prize pool and vault details"
+      >
         <div className="jackpot-apy-badge" aria-label="Net APY">
           <span className="jackpot-apy-badge-label">Net APY</span>
           <strong>{apyLoading ? '…' : formatApyPercent(netApy)}</strong>
@@ -41,10 +53,22 @@ export function ProtocolOverview({
           </span>
         )}
         <span className="jackpot-sub">
-          {prizeLoading ? 'Simulating on-chain accrual · ' : hasAccrued ? 'On-chain preview · ' : ''}
-          Funded by vault yield · paid to draw winners
+          {prizeLoading ? 'Syncing on-chain · ' : isLiveEstimate ? 'Live estimate · ' : ''}
+          Funded by vault yield · paid to draw winners · tap for details
         </span>
-      </div>
+      </button>
+
+      <PrizePoolModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        jackpot={jackpot}
+        pendingHarvesterUsd={pendingHarvesterUsd}
+        onChainPendingHarvesterUsd={onChainPendingHarvesterUsd}
+        isLiveEstimate={isLiveEstimate}
+        tvl={tvl}
+        netApy={netApy}
+        vaultSnapshot={vaultSnapshot}
+      />
 
       <div className="protocol-stats">
         <div className="protocol-stat">
@@ -58,10 +82,13 @@ export function ProtocolOverview({
           <strong>
             {drawsStarted
               ? (countdownSec != null ? formatCountdown(countdownSec) : '—')
-              : firstDrawLabel}
+              : (firstDrawCountdownSec != null ? formatCountdown(firstDrawCountdownSec) : firstDrawLabel)}
           </strong>
           {drawsStarted && openDrawId != null && (
             <span className="protocol-stat-hint">Draw #{openDrawId.toString()}</span>
+          )}
+          {!drawsStarted && firstDrawLabel && (
+            <span className="protocol-stat-hint">{firstDrawLabel}</span>
           )}
         </div>
       </div>

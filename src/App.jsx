@@ -25,7 +25,7 @@ import { useVaultTx } from './hooks/useVaultTx.js'
 import { useDrawHistory, useProtocolStatsSubgraph, useRecentWinners, useUserVaultAccount } from './hooks/useSubgraph.js'
 import { useMorphoVaultSnapshot } from './hooks/useMorphoVaultSnapshot.js'
 import { useClaimablePrizes } from './hooks/useClaimablePrizes.js'
-import { useHarvesterPending } from './hooks/useHarvesterPending.js'
+import { useLiveHarvesterAccrual } from './hooks/useLiveHarvesterAccrual.js'
 import { waitForTx } from './tx.js'
 import { chainMismatchMessage, ensureRobinhoodNetwork, getWalletChainId } from './chain.js'
 const TIER_NAMES = ['Scout', 'Hood', 'Legend', 'OG']
@@ -206,8 +206,15 @@ export default function App() {
 
   const { vault: subgraphVault } = useProtocolStatsSubgraph()
   const { snapshot: vaultSnapshot, loading: vaultApyLoading } = useMorphoVaultSnapshot(addresses.morphoVault)
-  const { pendingAssets: harvesterPendingAssets, loading: harvesterPendingLoading } = useHarvesterPending()
-  const pendingHarvesterUsd = formatUnits(harvesterPendingAssets, 6)
+  const liveHarvesterAccrual = useLiveHarvesterAccrual({
+    tvlUsd: vaultAssets
+      ? formatUnits(vaultAssets, 6)
+      : subgraphVault?.balance != null
+        ? formatUnits(BigInt(subgraphVault.balance), 6)
+        : vaultSnapshot?.totalAssetsUsd ?? null,
+    netApy: vaultSnapshot?.netApy,
+    nowSec: now,
+  })
   const {
     prizes: claimablePrizes,
     total: claimableTotal,
@@ -323,6 +330,9 @@ export default function App() {
   const firstDrawLabel = firstDrawOpensAt
     ? formatTimestamp(Number(firstDrawOpensAt))
     : 'soon'
+  const firstDrawCountdownSec = firstDrawOpensAt && !firstDrawOpen
+    ? Math.max(0, Number(firstDrawOpensAt) - now)
+    : null
   const hasUsdg = Boolean(usdgBalance && usdgBalance.value > 0n)
   const hasGas = Boolean(onRobinhood && ethBalance && ethBalance.value >= parseEther('0.00005'))
   const hasPosition = Number(position) > 0
@@ -504,15 +514,19 @@ export default function App() {
               <div className="side-stack">
                 <ProtocolOverview
                   jackpot={jackpot}
-                  pendingHarvesterUsd={pendingHarvesterUsd}
+                  pendingHarvesterUsd={liveHarvesterAccrual.pendingUsd}
+                  onChainPendingHarvesterUsd={liveHarvesterAccrual.onChainPendingUsd}
+                  isLiveEstimate={liveHarvesterAccrual.isLiveEstimate}
                   tvl={tvl}
                   countdownSec={countdownSec}
                   openDrawId={openDrawId}
                   drawsStarted={firstDrawOpen || hasAwardedDraws}
                   firstDrawLabel={firstDrawLabel}
+                  firstDrawCountdownSec={firstDrawCountdownSec}
                   netApy={vaultSnapshot?.netApy}
                   apyLoading={vaultApyLoading}
-                  prizeLoading={prizeLoading || harvesterPendingLoading}
+                  vaultSnapshot={vaultSnapshot}
+                  prizeLoading={prizeLoading || liveHarvesterAccrual.loading}
                 />
 
                 <UserDashboard
